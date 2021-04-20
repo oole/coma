@@ -3,7 +3,7 @@ import copy
 import time
 import numpy as np
 import argparse
-from util import mesh_sampling
+import mesh_sampling
 from psbody.mesh import Mesh
 from psbody.mesh import MeshViewers
 
