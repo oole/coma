@@ -23,7 +23,7 @@ def laplacian(W, normalized=True):
     assert type(L) is scipy.sparse.csr.csr_matrix
     return L
 
-def rescale_L(L, lmax=2):
+def rescale_laplacian(L, lmax=2):
     """
     Rescale Laplacian eigenvalues to [-1,1].
     """
