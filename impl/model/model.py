@@ -1,84 +1,64 @@
 import tensorflow as tf
 import numpy as np
 import os, time, collections, shutil
+from o_layers import encoder_block, decoder_block
+from tensorflow import keras
 
-class BaseNet(object):
 
-    def __init__(self):
-        self.regularizers = []
 
-    def predict(self, data, labels=None, sess=None):
+
+class encoder(keras.Model):
+    """
+    Model for the encoder
+    """
+    def __init__(self, num_features, laplacians, downsampling_transformations, Ks, **kwargs):
+        super(encoder, self).__init__(**kwargs)
+        self.encoder_blocks = []
+        for i in range(len(num_features)):
+            self.encoder_blocks.append(encoder_block(laplacian=laplacians[i],
+                                                     K=Ks[i],
+                                                     input_features=num_features[i],
+                                                     output_features=num_features[i],
+                                                     downsampling_transformation=downsampling_transformations[i]))
+        self.flatten = keras.layers.Flatten()
+        self.fc = keras.layers.Dense()
+
+    def call(self, input_tensor):
+        x = input_tensor
+        for i in range(len(self.encoder_blocks)):
+            x = self.encoder_blocks[i](x)
+        return x
+
+    def model(self, input_shape):
         """
-        Predicts labels on the given data, labels are given, the loss on will be returned along with the predictions..
-
-        :param data: The data for which the prediction should be performed
-        :param labels: (OPTIONAL) The true labels, for which the loss should be computed
-        :param sess: The tensorflow session for the model
-
-        :returns: Either the predictions, or the predictions with the loss if true labels were given.
+        Helper to enable model summary encoder.model(input_shape).summary()
         """
-        loss = 0
-        size = data.shape[0]
-        predictions = [0]*size
-        sess = self._get_session(sess)
-
-        # batch prediction
-        for begin in range(0, size, self.batch_size):
-            end = begin + self.batch_size
-            # last batch might be smaller than actual batch size
-            end = min([end, size])
-
-            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
-            tmp_data = data[begin:end, :]
-            if type(tmp_data) is not np.ndarray:
-                # converting sparse matrices
-                tmp_data = tmp_data.toarray()
-            batch_data[:end-begin] = tmp_data
-            feed_dict = {self.ph_data: batch_data, self.ph_dropout:1}
-
-            if labels is not None:
-                batch_labels = np.zeros((self.batch_size, labels.shape[1], labels.shape[2]))
-                batch_labels[:end-begin] = labels[begin:end]
-                feed_dict[self.ph_labels] = batch_labels
-                batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
-                loss += batch_loss
-            else:
-                batch_pred = sess.run(self.op_prediction, feed_dict)
-
-            predictions[begin:end] = batch_pred[:end-begin]
-
-        predictions = np.array(predictions)
-        if labels is not None:
-            return predictions, loss * self.batch_size / size
-        else:
-            return predictions
+        x = keras.Input(shape=(input_shape[1],input_shape[2]), batch_size=input_shape[0])
+        print(x.shape)
+        return keras.Model(inputs=[x], outputs=self.call(x))
 
 
-    def evaluate(self, data, labels, sess=None):
+class decoder(keras.Model):
+    def __init__(self, num_features, laplacians, upsampling_transformations, Ks, **kwargs):
+        super(decoder, self).__init__(**kwargs)
+        self.decoder_blocks = []
+        for i in range(len(num_features)):
+            self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
+                                                     K=Ks[-i - 1],
+                                                     input_features=num_features[-i - 1],
+                                                     output_features=num_features[-i - 1],
+                                                     upsampling_transformation=upsampling_transformations[-i - 1]))
+
+    def call(self, input_tensor):
+        x = input_tensor
+        for i in range(len(self.decoder_blocks)):
+            x = self.decoder_blocks[i](x)
+        return x
+
+    def model(self, input_shape):
         """
-        Evaluates the model on the given data.
-
-        :param data: The data for which the labels should be predicted
-        :param labels: The true labels for the data
-        :param sess: The tensorflow session for the model
-
-        :returns: The loss given the prediction and the true labels
+            Helper to enable model summary decoder.model(input_shape).summary()
         """
-        predictions, loss = self.predict(data, labels, sess)
-
-        return loss
-
-    def fit(self, train_data, train_labels, val_data, val_labels):
-        """
-        Fits model to the given training data, validates on given validation data.
-
-        :param train_data: The training data
-        :param train_labels: The true training labels
-        :param val_data: The validation data
-        :param val_labels: The true validation labels
-        """
-        print("fitting")
-        sess = 
-
-    def _get_session(self, sess):
-        print("Getting session")
+        x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=input_shape[0])
+        print(x.shape)
+        return keras.Model(inputs=[x], outputs=self.call(x))
