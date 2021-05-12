@@ -4,11 +4,13 @@ import time
 import numpy as np
 import argparse
 from util import mesh_sampling
+from util.log_util import date_print
 from psbody.mesh import Mesh
 from psbody.mesh import MeshViewers
 from data import meshdata
 import util.graph_util as graph
 import model.coma as coma
+from datetime import datetime
 
 ## experimental config for memory growth on tf with gpu
 # physical_devices = tf.config.list_physical_devices('GPU')
@@ -42,7 +44,7 @@ np.random.seed(args.seed)
 nz = args.nz
 
 # load reference mesh file
-print("Loading template mesh.")
+date_print("Loading template mesh.")
 template_mesh_path = "/home/oole/git/ma/coma/impl/data/template.obj"
 template_mesh = Mesh(filename=template_mesh_path)
 
@@ -55,8 +57,8 @@ downsampling_factors = [4, 4, 4, 4]
 # U Upsampling matrices
 ## D/U Sampling mesh 4 times, mesh is sampled by factor of 4
 
-print("Precomputing adjecency/downsampling/upsampling matrices \n"
-      "and graph laplaciancs according to adjecency matrices based on templat mesh")
+date_print("Precomputing adjecency/downsampling/upsampling matrices and graph laplaciancs according to adjecency "
+           "matrices based on templat mesh")
 
 meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices = mesh_sampling.generate_transformation_matrices(
     template_mesh, downsampling_factors)
@@ -86,6 +88,9 @@ x_val = mesh_data.vertices_val.astype('float32')
 x_test = mesh_data.vertices_test.astype('float32')
 
 num_train = x_train.shape[0]
+date_print("Training shape:   \t" + str(x_train.shape))
+date_print("Validation shape: \t" + str(x_val.shape))
+date_print("Test shape:       \t" + str(x_test.shape))
 
 # ----- Parse Parameters
 parameters = dict()
