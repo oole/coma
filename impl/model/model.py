@@ -7,48 +7,73 @@ from tensorflow import keras
 
 class coma_ae(keras.Model):
     def __init__(self,
+                 num_input_features,
                  num_features,
                  laplacians,
                  downsampling_transformations,
                  upsampling_transformations,
                  Ks,
                  num_latent,
+                 batch_size,
                  **kwargs):
         super(coma_ae, self).__init__(**kwargs)
-        self.encoder = encoder(num_features=num_features,
+        self.encoder = encoder(num_input_features=num_input_features,
+                               num_features=num_features,
                                laplacians=laplacians,
                                downsampling_transformations=downsampling_transformations,
                                Ks=Ks,
-                               num_latent=num_latent)
-        self.decoder = decoder(num_features=num_features,
+                               num_latent=num_latent,
+                               batch_size=batch_size)
+        self.decoder = decoder(num_output_features=num_input_features,
+                               num_features=num_features,
                                laplacians=laplacians,
                                upsampling_transformations=upsampling_transformations,
-                               Ks=Ks)
+                               Ks=Ks,
+                               batch_size=batch_size)
 
     def call(self, input_tensor):
         x = self.encoder(input_tensor)
         x = self.decoder(x)
         return x
 
-    def model(self, input_shape):
-        x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=input_shape[0])
+    def model(self, input_shape, batch_size):
+        x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=batch_size)
         print(x.shape)
         return keras.Model(inputs=[x], outputs=self.call(x))
 
+    def training(self):
 
 class encoder(keras.Model):
     """
     Model for the encoder
     """
-    def __init__(self, num_features, laplacians, downsampling_transformations, Ks, num_latent, **kwargs):
+    def __init__(self,
+                 num_input_features,
+                 num_features,
+                 laplacians,
+                 downsampling_transformations,
+                 Ks,
+                 num_latent,
+                 batch_size,
+                 **kwargs):
         super(encoder, self).__init__(**kwargs)
         self.encoder_blocks = []
         for i in range(len(num_features)):
-            self.encoder_blocks.append(encoder_block(laplacian=laplacians[i],
-                                                     K=Ks[i],
-                                                     input_features=num_features[i],
-                                                     output_features=num_features[i],
-                                                     downsampling_transformation=downsampling_transformations[i]))
+            if i==0:
+                self.encoder_blocks.append(encoder_block(laplacian=laplacians[i],
+                                                         K=Ks[i],
+                                                         input_features=num_input_features,
+                                                         output_features=num_features[i],
+                                                         downsampling_transformation=downsampling_transformations[i],
+                                                         batch_size=batch_size))
+            else:
+                self.encoder_blocks.append(encoder_block(laplacian=laplacians[i],
+                                                         K=Ks[i],
+                                                         input_features=num_features[i-1],
+                                                         output_features=num_features[i],
+                                                         downsampling_transformation=downsampling_transformations[i],
+                                                         batch_size=batch_size))
+
         self.flatten = tf.keras.layers.Flatten()
         self.dense = tf.keras.layers.Dense(num_latent)
 
@@ -60,17 +85,24 @@ class encoder(keras.Model):
         x = self.dense(x)
         return x
 
-    def model(self, input_shape):
+    def model(self, input_shape, batch_size):
         """
         Helper to enable model summary encoder.model(input_shape).summary()
         """
-        x = keras.Input(shape=(input_shape[1],input_shape[2]), batch_size=input_shape[0])
+        x = keras.Input(shape=(input_shape[1],input_shape[2]), batch_size=batch_size)
         print(x.shape)
         return keras.Model(inputs=[x], outputs=self.call(x))
 
 
 class decoder(keras.Model):
-    def __init__(self, num_features, laplacians, upsampling_transformations, Ks, **kwargs):
+    def __init__(self,
+                 num_output_features,
+                 num_features,
+                 laplacians,
+                 upsampling_transformations,
+                 Ks,
+                 batch_size,
+                 **kwargs):
         super(decoder, self).__init__(**kwargs)
         initial_size = upsampling_transformations[-1].shape[1]
         initial_num_features = num_features[-1]
@@ -78,11 +110,21 @@ class decoder(keras.Model):
         self.reshape = keras.layers.Reshape((initial_size, initial_num_features))
         self.decoder_blocks = []
         for i in range(len(num_features)):
-            self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
-                                                     K=Ks[-i - 1],
-                                                     input_features=num_features[-i - 1],
-                                                     output_features=num_features[-i - 1],
-                                                     upsampling_transformation=upsampling_transformations[-i - 1]))
+            if i == (len(num_features)-1):
+                # Last layer has given output feature size
+                self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
+                                                         K=Ks[-i - 1],
+                                                         input_features=num_features[-i - 1],
+                                                         output_features=num_output_features,
+                                                         upsampling_transformation=upsampling_transformations[-i - 1],
+                                                         batch_size=batch_size))
+            else:
+                self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
+                                                         K=Ks[-i - 1],
+                                                         input_features=num_features[-i - 1],
+                                                         output_features=num_features[-i - 2],
+                                                         upsampling_transformation=upsampling_transformations[-i - 1],
+                                                         batch_size=batch_size))
 
     def call(self, input_tensor):
         x = input_tensor
@@ -90,10 +132,10 @@ class decoder(keras.Model):
             x = self.decoder_blocks[i](x)
         return x
 
-    def model(self, input_shape):
+    def model(self, input_shape, batch_size):
         """
             Helper to enable model summary decoder.model(input_shape).summary()
         """
-        x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=input_shape[0])
+        x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=batch_size)
         print(x.shape)
         return keras.Model(inputs=[x], outputs=self.call(x))

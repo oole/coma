@@ -16,12 +16,13 @@ class cheb_conv(layers.Layer):
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
 
-    def __init__(self, K, input_features, output_features, laplacian, **kwargs):
+    def __init__(self, K, input_features, output_features, laplacian, batch_size, **kwargs):
         super(cheb_conv, self).__init__(**kwargs)
         self.K = K
         self.input_features = input_features
         self.output_features = output_features
         self.laplacian = laplacian
+        self.batch_size = batch_size
 
     def build(self, input_shape):
         # build layer weights
@@ -45,7 +46,7 @@ class cheb_conv(layers.Layer):
         # tansform input to chebyshev basis
         x0 = tf.transpose(input_tensor, perm=[1, 2, 0])
 
-        x0 = tf.reshape(x0, [input_tensor.shape[1], self.input_features * input_tensor.shape[0]])
+        x0 = tf.reshape(x0, [tf.shape(input_tensor)[1], self.input_features * self.batch_size])
         x = tf.expand_dims(x0, 0)
         if self.K > 1:
             x1 = tf.sparse.sparse_dense_matmul(self.L, x0)
@@ -56,15 +57,15 @@ class cheb_conv(layers.Layer):
             x = tf.concat([x, tf.expand_dims(x2, 0)], axis=0)
             x0, x1 = x1, x2
 
-        x = tf.reshape(x, [self.K, input_tensor.shape[1], self.input_features, input_tensor.shape[0]])
+        x = tf.reshape(x, [self.K, tf.shape(input_tensor)[1], self.input_features, self.batch_size])
 
         x = tf.transpose(x, perm=[3, 1, 2, 0])
 
-        x = tf.reshape(x, [input_tensor.shape[0] * input_tensor.shape[1], self.input_features * self.K])
+        x = tf.reshape(x, [self.batch_size * tf.shape(input_tensor)[1], self.input_features * self.K])
         # compute conv
         x = tf.matmul(x, self.w)
 
-        return tf.reshape(x, [input_tensor.shape[0], input_tensor.shape[1], self.output_features])
+        return tf.reshape(x, [self.batch_size, tf.shape(input_tensor)[1], self.output_features])
 
 
 class sampling(layers.Layer):
@@ -76,10 +77,11 @@ class sampling(layers.Layer):
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
 
-    def __init__(self, sampling_transformation, input_features, **kwargs):
+    def __init__(self, sampling_transformation, input_features, batch_size, **kwargs):
         super(sampling, self).__init__(**kwargs)
         self.sampling_transformation = sampling_transformation
         self.input_features = input_features
+        self.batch_size = batch_size
 
     def build(self, input_shape):
         self.input_mesh_size = self.sampling_transformation.shape[1]
@@ -92,9 +94,9 @@ class sampling(layers.Layer):
 
     def call(self, input_tensor):
         x = tf.transpose(input_tensor, perm=[1, 2, 0])
-        x = tf.reshape(x, [self.input_mesh_size, self.input_features * input_tensor.shape[0]])
+        x = tf.reshape(x, [self.input_mesh_size, self.input_features * self.batch_size])
         x = tf.sparse.sparse_dense_matmul(self.D, x)
-        x = tf.reshape(x, [self.output_mesh_size, self.input_features, input_tensor.shape[0]])
+        x = tf.reshape(x, [self.output_mesh_size, self.input_features, self.batch_size])
         x = tf.transpose(x, perm=[2, 0, 1])
         return x
 
@@ -110,15 +112,18 @@ class encoder_block(layers.Layer):
                  K,
                  input_features,
                  output_features,
-                 downsampling_transformation, **kwargs):
+                 downsampling_transformation,
+                 batch_size, **kwargs):
         super(encoder_block, self).__init__(**kwargs)
         self.cheb_1 = cheb_conv(input_features=input_features,
                                 output_features=output_features,
                                 K=K,
-                                laplacian=laplacian)
+                                laplacian=laplacian,
+                                batch_size=batch_size)
         self.bias_relu_1 = bias_relu()
         self.downsampling_1 = sampling(sampling=downsampling_transformation,
-                                       input_features=output_features)
+                                       input_features=output_features,
+                                       batch_size=batch_size)
 
     def call(self, input_tensor):
         x = self.cheb_1(input_tensor)
@@ -131,15 +136,18 @@ class decoder_block(layers.Layer):
     """
     Decoder block consisting of an upsampling layer followed by a chebyshev convolution.
     """
-    def __init__(self, laplacian, K, input_features, output_features, upsampling_transformation, **kwargs):
+    def __init__(self, laplacian, K, input_features, output_features, upsampling_transformation, batch_size, **kwargs):
         super(decoder_block, self).__init__(**kwargs)
-        self.upsampling_1 = sampling(sampling_transformation=upsampling_transformation, input_features=input_features)
+        self.upsampling_1 = sampling(sampling_transformation=upsampling_transformation,
+                                     input_features=input_features,
+                                     batch_size=batch_size)
 
         self.dec_cheb_1 = cheb_conv(
             input_features=input_features,
             output_features=output_features,
             K=K,
-            laplacian=laplacian, name="dec_1_conv")
+            laplacian=laplacian,
+            batch_size=batch_size)
         self.bias_relu_1 = bias_relu()
 
     def call(self, input_tensor):
