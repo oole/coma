@@ -43,7 +43,7 @@ class MeshData(object):
         self.vertices_train = vertices_train[:-self.number_val]
         self.vertices_val = vertices_train[-self.number_val:]
 
-        self.n_vertex = self.vertices_train.shape[0]
+        self.n_vertex = self.vertices_train.shape[1]
 
         self.vertices_test = np.load(self.test_file)
 
@@ -113,6 +113,10 @@ class MeshData(object):
                 viewer[i][j].set_dynamic_meshes([mesh_mesh])
         time.sleep(0.1)
         return 0
+
+    def vec2mesh(self, vec):
+        vec = vec.reshape((self.n_vertex, 3)) * self.std + self.mean
+        return Mesh(v=vec, f=self.reference_mesh.f)
 
 def meshPlay(folder, every=100, wait=0.05):
     """"
