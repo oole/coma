@@ -3,20 +3,23 @@ import copy
 import time
 import numpy as np
 import argparse
-from util import mesh_sampling
+
+from numpy import save
+
+from util import mesh_sampling, mesh_util
 from util.log_util import date_print
-from psbody.mesh import Mesh
-from psbody.mesh import MeshViewers
+from psbody.mesh import MeshViewers, Mesh
 from data import meshdata
 import util.graph_util as graph
 from model.model import coma_ae
 from tensorflow import keras
+import tensorflow as tf
 
 ## experimental config for memory growth on tf with gpu
-# physical_devices = tf.config.list_physical_devices('GPU')
-# tf.config.experimental.set_memory_growth(physical_devices[0], true)
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # prevent information messages from tensorflow (such as "cuda loaded" etc)
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 parser = argparse.ArgumentParser(description="Trainer for Convolutional Mesh Autoencoders")
 parser.add_argument('--name', default='bareteeth', help='facial_motion| lfw ')
@@ -46,9 +49,10 @@ working_dir = ""  # TODO
 num_features = [16, 16, 16, 32]  # number of conv filters per conv layer
 polynom_orders = [6, 6, 6, 6]  # polynomial orders
 num_latent = 8
-batch_size = 16
-num_epochs = 5
-validation_frequency = 2
+batch_size = 64
+num_epochs = 100
+initial_epoch= 50
+validation_frequency = 1
 
 # load reference mesh file
 date_print("Loading template mesh.")
@@ -132,12 +136,28 @@ coma_model = coma_ae(num_input_features=num_input_features,
 coma_model.compile(loss=keras.losses.MeanAbsoluteError(),
                    optimizer=keras.optimizers.Adam(3e-4), metrics=[keras.metrics.MeanAbsoluteError()])
 
+if len(os.listdir("/home/oole/coma-model/checkpoint")) > 1:
+    coma_model.load_weights("/home/oole/coma-model/checkpoint/")
+
+save_callback = keras.callbacks.ModelCheckpoint(filepath="/home/oole/coma-model/checkpoint/",
+                                                save_weights_only=True,
+                                                monitor='accuracy',
+                                                save_best_only=False,
+                                                verbose=1)
+
+
+tensorboard_callback = keras.callbacks.TensorBoard(log_dir="/home/oole/coma-model/tensorboard/")
+
 coma_model.fit(x_train, x_train,
                batch_size=batch_size,
                epochs=num_epochs,
                shuffle=True,
                validation_freq=validation_frequency,
-               validation_data=(x_val, x_val))
+               validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback], initial_epoch=initial_epoch)
 
-result = coma_model(x_test, batch_size=16)
+result = coma_model.predict(x_test, batch_size=batch_size)
+print(result.shape)
+mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
+
+print("Result visualization")
 # ----- Create model
