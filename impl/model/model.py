@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import os, time, collections, shutil
-from o_layers import encoder_block, decoder_block
+from model.o_layers import encoder_block, decoder_block
 from tensorflow import keras
 
 
@@ -41,12 +41,12 @@ class coma_ae(keras.Model):
         print(x.shape)
         return keras.Model(inputs=[x], outputs=self.call(x))
 
-    def training(self):
 
 class encoder(keras.Model):
     """
     Model for the encoder
     """
+
     def __init__(self,
                  num_input_features,
                  num_features,
@@ -59,7 +59,7 @@ class encoder(keras.Model):
         super(encoder, self).__init__(**kwargs)
         self.encoder_blocks = []
         for i in range(len(num_features)):
-            if i==0:
+            if i == 0:
                 self.encoder_blocks.append(encoder_block(laplacian=laplacians[i],
                                                          K=Ks[i],
                                                          input_features=num_input_features,
@@ -69,7 +69,7 @@ class encoder(keras.Model):
             else:
                 self.encoder_blocks.append(encoder_block(laplacian=laplacians[i],
                                                          K=Ks[i],
-                                                         input_features=num_features[i-1],
+                                                         input_features=num_features[i - 1],
                                                          output_features=num_features[i],
                                                          downsampling_transformation=downsampling_transformations[i],
                                                          batch_size=batch_size))
@@ -89,7 +89,7 @@ class encoder(keras.Model):
         """
         Helper to enable model summary encoder.model(input_shape).summary()
         """
-        x = keras.Input(shape=(input_shape[1],input_shape[2]), batch_size=batch_size)
+        x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=batch_size)
         print(x.shape)
         return keras.Model(inputs=[x], outputs=self.call(x))
 
@@ -110,7 +110,7 @@ class decoder(keras.Model):
         self.reshape = keras.layers.Reshape((initial_size, initial_num_features))
         self.decoder_blocks = []
         for i in range(len(num_features)):
-            if i == (len(num_features)-1):
+            if i == (len(num_features) - 1):
                 # Last layer has given output feature size
                 self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
                                                          K=Ks[-i - 1],
@@ -127,7 +127,8 @@ class decoder(keras.Model):
                                                          batch_size=batch_size))
 
     def call(self, input_tensor):
-        x = input_tensor
+        x = self.fc(input_tensor)
+        x = self.reshape(x)
         for i in range(len(self.decoder_blocks)):
             x = self.decoder_blocks[i](x)
         return x

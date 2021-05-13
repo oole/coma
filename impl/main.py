@@ -9,8 +9,8 @@ from psbody.mesh import Mesh
 from psbody.mesh import MeshViewers
 from data import meshdata
 import util.graph_util as graph
-import model.coma as coma
-from datetime import datetime
+from model.model import coma_ae
+from tensorflow import keras
 
 ## experimental config for memory growth on tf with gpu
 # physical_devices = tf.config.list_physical_devices('GPU')
@@ -41,7 +41,14 @@ args = parser.parse_args()
 # set random seed
 np.random.seed(args.seed)
 # dimension of latent variable
-nz = args.nz
+working_dir = ""  # TODO
+
+num_features = [16, 16, 16, 32]  # number of conv filters per conv layer
+polynom_orders = [6, 6, 6, 6]  # polynomial orders
+num_latent = 8
+batch_size = 16
+num_epochs = 5
+validation_frequency = 2
 
 # load reference mesh file
 date_print("Loading template mesh.")
@@ -92,38 +99,45 @@ date_print("Training shape:   \t" + str(x_train.shape))
 date_print("Validation shape: \t" + str(x_val.shape))
 date_print("Test shape:       \t" + str(x_test.shape))
 
+x_train = x_train[:-(x_train.shape[0] % batch_size)]
+x_val = x_val[:-(x_val.shape[0] % batch_size)]
+x_test = x_test[:-(x_test.shape[0] % batch_size)]
+date_print("Training shape:   \t" + str(x_train.shape))
+date_print("Validation shape: \t" + str(x_val.shape))
+date_print("Test shape:       \t" + str(x_test.shape))
 # ----- Parse Parameters
 parameters = dict()
 # Training configuration
-parameters['dir_name'] = args.name
-parameters['num_epochs'] = args.num_epochs
-parameters['batch_size'] = args.batch_size
-parameters['eval_frequency'] = args.eval_frequency
+num_input_features = int(x_train.shape[-1])
 
-parameters['filter'] = args.filter
-parameters['brelu'] = 'b1relu'
-parameters['pool'] = 'poolwT'
-parameters['unpool'] = 'poolwT'
-
-parameters['F_0'] = int(x_train.shape[2])  # input dimension
-parameters['F'] = [16, 16, 16, 32]  # number of conv filters per conv layer
-parameters['K'] = [6, 6, 6, 6]  # polynomial orders
-parameters['p'] = p  # pooling size, corresponds to size of adjecency matrix
-parameters['nz'] = [nz]  # size of latent vector
-
-# Optimization
-parameters['which_loss'] = args.loss
-parameters['nv'] = 784  # TODO check this value -> read from tempalte mesh
-parameters['regularization'] = 5e-4
-parameters['dropout'] = 1  # TODO ? no dropout?
-parameters['learning_rate'] = args.lr
-parameters['decay_rate'] = 0.99
-parameters['momentum'] = 0.9
-parameters['decay_steps'] = num_train / parameters['batch_size']
+# Optimization TODO
+# parameters['which_loss'] = args.loss
+# parameters['nv'] = 784  # TODO check this value -> read from tempalte mesh
+# parameters['regularization'] = 5e-4
+# parameters['dropout'] = 1  # TODO ? no dropout?
+# parameters['learning_rate'] = args.lr
+# parameters['decay_rate'] = 0.99
+# parameters['momentum'] = 0.9
+# parameters['decay_steps'] = num_train / parameters['batch_size']
 
 # Model configuration
 # model = models.coma(L=L, D=D, U=U, **parameters)
-model = coma.ComaModel(laplacians=laplacians, downsampling_matrices=downsampling_matrices,
-                       upsampling_matrices=upsampling_matrices, **parameters)
+coma_model = coma_ae(num_input_features=num_input_features,
+                     num_features=num_features,
+                     laplacians=laplacians[:-1],
+                     downsampling_transformations=downsampling_matrices,
+                     upsampling_transformations=upsampling_matrices,
+                     Ks=polynom_orders,
+                     num_latent=num_latent, batch_size=batch_size)
+coma_model.compile(loss=keras.losses.MeanAbsoluteError(),
+                   optimizer=keras.optimizers.Adam(3e-4), metrics=[keras.metrics.MeanAbsoluteError()])
 
+coma_model.fit(x_train, x_train,
+               batch_size=batch_size,
+               epochs=num_epochs,
+               shuffle=True,
+               validation_freq=validation_frequency,
+               validation_data=(x_val, x_val))
+
+result = coma_model(x_test, batch_size=16)
 # ----- Create model
