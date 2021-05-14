@@ -50,9 +50,12 @@ num_features = [16, 16, 16, 32]  # number of conv filters per conv layer
 polynom_orders = [6, 6, 6, 6]  # polynomial orders
 num_latent = 8
 batch_size = 64
-num_epochs = 100
-initial_epoch= 50
+num_epochs = 300
+initial_epoch= 100
 validation_frequency = 1
+
+perform_training = False
+perform_testing = True
 
 # load reference mesh file
 date_print("Loading template mesh.")
@@ -139,25 +142,27 @@ coma_model.compile(loss=keras.losses.MeanAbsoluteError(),
 if len(os.listdir("/home/oole/coma-model/checkpoint")) > 1:
     coma_model.load_weights("/home/oole/coma-model/checkpoint/")
 
-save_callback = keras.callbacks.ModelCheckpoint(filepath="/home/oole/coma-model/checkpoint/",
-                                                save_weights_only=True,
-                                                monitor='accuracy',
-                                                save_best_only=False,
-                                                verbose=1)
+if perform_training:
+    save_callback = keras.callbacks.ModelCheckpoint(filepath="/home/oole/coma-model/checkpoint/",
+                                                    save_weights_only=True,
+                                                    monitor='accuracy',
+                                                    save_best_only=False,
+                                                    verbose=1)
 
 
-tensorboard_callback = keras.callbacks.TensorBoard(log_dir="/home/oole/coma-model/tensorboard/")
+    tensorboard_callback = keras.callbacks.TensorBoard(log_dir="/home/oole/coma-model/tensorboard/")
 
-coma_model.fit(x_train, x_train,
-               batch_size=batch_size,
-               epochs=num_epochs,
-               shuffle=True,
-               validation_freq=validation_frequency,
-               validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback], initial_epoch=initial_epoch)
+    coma_model.fit(x_train, x_train,
+                   batch_size=batch_size,
+                   epochs=num_epochs,
+                   shuffle=True,
+                   validation_freq=validation_frequency,
+                   validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback], initial_epoch=initial_epoch)
 
-result = coma_model.predict(x_test, batch_size=batch_size)
-print(result.shape)
-mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
+if perform_testing:
+    result = coma_model.predict(x_test, batch_size=batch_size)
+    print(result.shape)
+    mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
 
 print("Result visualization")
 # ----- Create model
