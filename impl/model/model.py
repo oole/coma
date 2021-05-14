@@ -6,6 +6,19 @@ from tensorflow import keras
 
 
 class coma_ae(keras.Model):
+    """
+    Convolutional Mesh Autoencoder Model.
+
+    :param num_input_features: The number of output features of the last decoder block.
+    :param num_features: A list of number of features for the decoding blocks
+    :param laplacians: A list of laplacians for the encoder and decoder
+    :param downsampling_transformations: A list of downsampling transformations to be applied by the encoder
+    :param upsampling_transformations: A list of upsampling transformations to be applied by the decoder
+    :param Ks: A list of polynomial orders to be applied by the decoding blocks
+    :param num_latent: The size of the latent representation of the meshes
+    :param batch_size: The batch size
+    :param **kwargs: (optional) additional arguments of :class: `tf.keras.Model`.
+    """
     def __init__(self,
                  num_input_features,
                  num_features,
@@ -44,9 +57,18 @@ class coma_ae(keras.Model):
 
 class encoder(keras.Model):
     """
-    Model for the encoder
-    """
+    Encoder model consisting of an encoder blocks.
 
+    Concatenates a number of decoder blocks, depending on the length of the given list of num_features.
+
+    :param num_input_features: The number of input features for the first encoder block
+    :param num_features: A list of number of features for the decoding blocks
+    :param laplacians: A list of laplacians for the decoding blcks
+    :param downsampling_transformations: A list of downsampling transformations to be applied by the encoding blocks
+    :param Ks: A list of polynomial orders to be applied by the decoding blocks
+    :param batch_size: The batch size
+    :param **kwargs: (optional) additional arguments of :class: `tf.keras.Model`.
+    """
     def __init__(self,
                  num_input_features,
                  num_features,
@@ -95,6 +117,19 @@ class encoder(keras.Model):
 
 
 class decoder(keras.Model):
+    """
+    Decoder Model consisting of decoder blocks.
+
+    Concatenates a number of decoder blocks, depending on the length of the given list of num_features.
+
+    :param num_output_features: The number of output features of the last decoder block.
+    :param num_features: A list of number of features for the decoding blocks
+    :param laplacians: A list of laplacians for the decoding blcks
+    :param upsampling_transformations: A list of upsampling transformations to be applied by the decoding blocks
+    :param Ks: A list of polynomial orders to be applied by the decoding blocks
+    :param batch_size: The batch size
+    :param **kwargs: (optional) additional arguments of :class: `tf.keras.Model`.
+    """
     def __init__(self,
                  num_output_features,
                  num_features,

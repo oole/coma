@@ -10,9 +10,11 @@ class cheb_conv(layers.Layer):
 
     -> Convolutional Neural Networks on Graphs with Fast Localized Spectral fFiltering
 
-    :param channels: Size of each input sample
-    :param K: Chebyshev filter size, i.5e. number of hops.
-    :param use_bias: If set to false the layer will not learn an additive bias, the default is :obj: `True`.
+    :param input_features: Size of each input sample
+    :param output_features: The number of output features
+    :param K: Chebyshev filter size
+    :param laplacian: The laplacian for the input mesh
+    :param batch_size: The batch_size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
 
@@ -73,9 +75,9 @@ class sampling(layers.Layer):
 
     :param sampling_transformation: The pre-computed up- or downsampling transformation that should be applied
     :param input_features: The number of input features
+    :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
-
     def __init__(self, sampling_transformation, input_features, batch_size, **kwargs):
         super(sampling, self).__init__(**kwargs)
         self.sampling_transformation = sampling_transformation
@@ -103,8 +105,14 @@ class sampling(layers.Layer):
 class encoder_block(layers.Layer):
     """
     Encoder block consisting of a chebychev convolution layer followed by a downsampling layer
-    TODO: Add bias RELU
 
+    :param laplacian: The laplacian for the chebyshev filter
+    :param K: The polynomial order to be used by the chebyshev filter
+    :param input_features: The number of input features
+    :param output_features: The number of output features
+    :param downsampling tansformation: The downsampling transformation to be applied
+    :param batch_size: The batch size
+    :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
     def __init__(self,
                  laplacian,
@@ -134,6 +142,14 @@ class encoder_block(layers.Layer):
 class decoder_block(layers.Layer):
     """
     Decoder block consisting of an upsampling layer followed by a chebyshev convolution.
+
+    :param laplacian: The laplacian for the chebyshev filter
+    :param K: The polynomial order to be used by the chebyshev filter
+    :param input_features: The number of input features
+    :param output_features: The number of output features
+    :param downsampling tansformation: The upsampling transformation to be applied
+    :param batch_size: The batch size
+    :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
     def __init__(self, laplacian, K, input_features, output_features, upsampling_transformation, batch_size, **kwargs):
         super(decoder_block, self).__init__(**kwargs)
@@ -157,6 +173,9 @@ class decoder_block(layers.Layer):
 
 
 class bias_relu(layers.Layer):
+    """
+    Custom relu layer that adds a bias.
+    """
     def __init__(self, **kwargs):
         super(bias_relu, self).__init__(**kwargs)
 
