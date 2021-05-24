@@ -19,6 +19,7 @@ class coma_ae(keras.Model):
     :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.Model`.
     """
+
     def __init__(self,
                  num_input_features,
                  num_features,
@@ -69,6 +70,7 @@ class encoder(keras.Model):
     :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.Model`.
     """
+
     def __init__(self,
                  num_input_features,
                  num_features,
@@ -130,6 +132,7 @@ class decoder(keras.Model):
     :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.Model`.
     """
+
     def __init__(self,
                  num_output_features,
                  num_features,

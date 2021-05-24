@@ -12,6 +12,7 @@ from psbody.mesh import MeshViewers, Mesh
 from data import meshdata
 import util.graph_util as graph
 from model.model import coma_ae
+import model.model_util as model_util
 from tensorflow import keras
 import tensorflow as tf
 
@@ -50,12 +51,15 @@ num_features = [16, 16, 16, 32]  # number of conv filters per conv layer
 polynom_orders = [6, 6, 6, 6]  # polynomial orders
 num_latent = 8
 batch_size = 64
-num_epochs = 300
-initial_epoch= 100
+num_epochs = 100
+initial_epoch = 0
 validation_frequency = 1
 
 perform_training = False
 perform_testing = True
+load_checkpoint = "/home/oole/coma-model/checkpoint/chkp_sgd_momentum"
+save_checkpoint = load_checkpoint
+tensorboard_dir = "/home/oole/coma-model/tensorboard/sgd_momentum/"
 
 # load reference mesh file
 date_print("Loading template mesh.")
@@ -127,6 +131,15 @@ num_input_features = int(x_train.shape[-1])
 # parameters['momentum'] = 0.9
 # parameters['decay_steps'] = num_train / parameters['batch_size']
 
+
+# Training parameters and regularization:
+learning_rate = 8e-3 # done
+decay_rate = 0.99 # done
+momentum = 0.9 # done
+decay_steps = num_train / batch_size # done
+dropout = 1 # TODO
+regularization = 5e-4 # TODO
+
 # Model configuration
 # model = models.coma(L=L, D=D, U=U, **parameters)
 coma_model = coma_ae(num_input_features=num_input_features,
@@ -136,28 +149,31 @@ coma_model = coma_ae(num_input_features=num_input_features,
                      upsampling_transformations=upsampling_matrices,
                      Ks=polynom_orders,
                      num_latent=num_latent, batch_size=batch_size)
-coma_model.compile(loss=keras.losses.MeanAbsoluteError(),
-                   optimizer=keras.optimizers.Adam(3e-4), metrics=[keras.metrics.MeanAbsoluteError()])
 
-if len(os.listdir("/home/oole/coma-model/checkpoint")) > 1:
-    coma_model.load_weights("/home/oole/coma-model/checkpoint/")
+coma_model.compile(loss=keras.losses.MeanAbsoluteError(),
+                   optimizer=keras.optimizers.SGD(
+                       learning_rate=model_util.get_learning_rate_decay_schedule(learning_rate, decay_rate, decay_steps),
+                       momentum=momentum), metrics=[keras.metrics.MeanAbsoluteError()])
+
+if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
+    coma_model.load_weights(load_checkpoint + "/")
 
 if perform_training:
-    save_callback = keras.callbacks.ModelCheckpoint(filepath="/home/oole/coma-model/checkpoint/",
+    save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/",
                                                     save_weights_only=True,
-                                                    monitor='accuracy',
+                                                    monitor='loss',
                                                     save_best_only=False,
                                                     verbose=1)
 
-
-    tensorboard_callback = keras.callbacks.TensorBoard(log_dir="/home/oole/coma-model/tensorboard/")
+    tensorboard_callback = keras.callbacks.TensorBoard(log_dir=tensorboard_dir)
 
     coma_model.fit(x_train, x_train,
                    batch_size=batch_size,
                    epochs=num_epochs,
                    shuffle=True,
                    validation_freq=validation_frequency,
-                   validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback], initial_epoch=initial_epoch)
+                   validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback],
+                   initial_epoch=initial_epoch)
 
 if perform_testing:
     result = coma_model.predict(x_test, batch_size=batch_size)

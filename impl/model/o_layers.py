@@ -41,7 +41,7 @@ class cheb_conv(layers.Layer):
             shape=(self.input_features * self.K, self.output_features),
             initializer=tf.keras.initializers.truncated_normal(),
             trainable=True,
-            regularizer=tf.keras.regularizers.L2()
+            regularizer=tf.keras.regularizers.L1()
         )
 
     def call(self, input_tensor):
