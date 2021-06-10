@@ -39,9 +39,10 @@ class cheb_conv(layers.Layer):
         self.w = self.add_weight(
             name='w',
             shape=(self.input_features * self.K, self.output_features),
-            initializer=tf.keras.initializers.truncated_normal(),
+            initializer=tf.keras.initializers.truncated_normal(mean=0.0, stddev=0.1),
             trainable=True,
-            regularizer=tf.keras.regularizers.L1()
+            # In original implementation there's no regularization for the chebychev layer weights
+            # regularizer=tf.keras.regularizers.L2()
         )
 
     def call(self, input_tensor):
