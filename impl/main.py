@@ -51,20 +51,24 @@ num_features = [16, 16, 16, 32]  # number of conv filters per conv layer
 polynom_orders = [6, 6, 6, 6]  # polynomial orders
 num_latent = 8
 batch_size = 64
-num_epochs = 100
+num_epochs = 300
 initial_epoch = 0
-validation_frequency = 1
+validation_frequency = 10
 
-perform_training = False
+perform_training = True
 perform_testing = True
-sanity_check = True
-load_checkpoint = "/home/oole/coma-model/checkpoint/chkp_sgd_momentum"
+sanity_check = False
+# load_checkpoint = "/home/oole/coma-model/checkpoint/chkp_sgd_momentum"
+load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/chkp_sgd_momentum"
+
 save_checkpoint = load_checkpoint
-tensorboard_dir = "/home/oole/coma-model/tensorboard/sgd_momentum/"
+# tensorboard_dir = "/home/oole/coma-model/tensorboard/sgd_momentum/"
+tensorboard_dir = "/abyss/home/tf-coma/coma-model/tensorboard/sgd_momentum/"
 
 # load reference mesh file
 date_print("Loading template mesh.")
-template_mesh_path = "/home/oole/git/ma/coma/impl/data/template.obj"
+# template_mesh_path = "/home/oole/git/ma/coma/impl"
+template_mesh_path = "/workspace/coma/impl/data/template.obj"
 template_mesh = Mesh(filename=template_mesh_path)
 
 # downsampling factors at each stage of sampling
@@ -98,8 +102,8 @@ laplacians = [graph.laplacian(matrix) for matrix in adjecency_matrices]
 # L same dimensions as adjecency_matrices
 # ----- Read dataset
 
-mesh_data = meshdata.MeshData(number_val=100, train_file="/media/oole/Storage/Msc/processed-data/sliced" + '/train.npy',
-                              test_file="/media/oole/Storage/Msc/processed-data/sliced" + '/test.npy',
+mesh_data = meshdata.MeshData(number_val=100, train_file="/abyss/home/face-data/processed-data/sliced" + '/train.npy',
+                              test_file="/abyss/home/face-data/processed-data/sliced" + '/test.npy',
                               reference_mesh_file=template_mesh_path)
 
 x_train = mesh_data.vertices_train.astype('float32')
@@ -134,12 +138,12 @@ num_input_features = int(x_train.shape[-1])
 
 
 # Training parameters and regularization:
-learning_rate = 8e-3 # done
-decay_rate = 0.99 # done
-momentum = 0.9 # done
-decay_steps = num_train / batch_size # done
-dropout = 1 # TODO
-regularization = 5e-4 # TODO
+learning_rate = 8e-3  # done
+decay_rate = 0.99  # done
+momentum = 0.9  # done
+decay_steps = num_train / batch_size  # done
+dropout = 1  # TODO
+regularization = 5e-4  # TODO
 
 # Model configuration
 # model = models.coma(L=L, D=D, U=U, **parameters)
