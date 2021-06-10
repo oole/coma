@@ -8,29 +8,13 @@ from psbody.mesh import Mesh
 from psbody.mesh import MeshViewers
 
 parser = argparse.ArgumentParser(description="Trainer for Convolutional Mesh Autoencoders")
-parser.add_argument('--name', default='bareteeth', help='facial_motion| lfw ')
-parser.add_argument('--data', default='data/bareteeth', help='facial_motion| lfw ')
-parser.add_argument('--batch_size', type=int, default=16, help='input batch size for training (default: 64)')
-parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train (default: 2)')
-parser.add_argument('--eval_frequency', type=int, default=200, help='eval frequency')
-parser.add_argument('--filter', default='chebyshev5', help='filter')
-parser.add_argument('--nz', type=int, default=8, help='Size of latent variable')
-parser.add_argument('--lr', type=float, default=8e-3, help='Learning Rate')
-parser.add_argument('--workers', type=int, default=4, help='number of data loading threads')
-parser.add_argument('--no-cuda', action='store_true', default=False, help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=2, help='random seed (default: 1)')
-parser.add_argument('--mode', default='train', type=str, help='train or test')
-parser.add_argument('--viz', type=int, default=0, help='visualize while test')
-parser.add_argument('--loss', default='l1', help='l1 or l2')
-parser.add_argument('--mesh1', default='m1', help='for mesh interpolation')
-parser.add_argument('--mesh2', default='m1', help='for mesh interpolation')
 
 args = parser.parse_args()
 
 #set random seed
 np.random.seed(args.seed)
 # dimension of latent variable
-nz = args.nz
 
 # load reference mesh file
 mesh = Mesh(filename="/home/oole/git/ma/coma/impl/data/template.obj")
