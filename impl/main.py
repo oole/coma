@@ -57,6 +57,7 @@ validation_frequency = 1
 
 perform_training = False
 perform_testing = True
+sanity_check = True
 load_checkpoint = "/home/oole/coma-model/checkpoint/chkp_sgd_momentum"
 save_checkpoint = load_checkpoint
 tensorboard_dir = "/home/oole/coma-model/tensorboard/sgd_momentum/"
@@ -179,6 +180,11 @@ if perform_testing:
     result = coma_model.predict(x_test, batch_size=batch_size)
     print(result.shape)
     mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
+
+if sanity_check:
+    x_reference = np.full((batch_size, 5023, 3), mesh_data.reference_mesh.v)
+    x_result = coma_model.predict(x_reference, batch_size=batch_size)
+    mesh_util.visualizeSideBySide(original=x_reference, prediction=x_result, number_of_meshes=1, mesh_data=mesh_data)
 
 print("Result visualization")
 # ----- Create model
