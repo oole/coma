@@ -184,10 +184,9 @@ class bias_relu(layers.Layer):
         _, mesh_size, num_features = input_shape
         self.b = self.add_weight(
             name='bias',
-            shape=(1, mesh_size, num_features),
-            initializer=tf.keras.initializers.constant(value=0.1, ),
+            shape=(1, 1, num_features),
+            initializer=tf.keras.initializers.constant(value=0.1),
             trainable=True,
-            regularizer=tf.keras.regularizers.L2()
         )
 
     def call(self, input_tensor):
