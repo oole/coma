@@ -56,15 +56,16 @@ num_epochs = 300
 initial_epoch = 0
 validation_frequency = 10
 
+run_name = "lr_0.01-mesh_vis"
 perform_training = True
 perform_testing = True
 sanity_check = False
-# load_checkpoint = "/home/oole/coma-model/checkpoint/chkp_sgd_momentum"
-load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/chkp_sgd_momentum"
+# load_checkpoint = "/home/oole/coma-model/checkpoint/" + run_name
+load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/" + run_name
 
 save_checkpoint = load_checkpoint
-# tensorboard_dir = "/home/oole/coma-model/tensorboard/sgd_momentum/"
-tensorboard_dir = "/abyss/home/tf-coma/coma-model/tensorboard/sgd_momentum/"
+# tensorboard_dir = "/home/oole/coma-model/tensorboard/" + run_name + "/"
+tensorboard_dir = "/abyss/home/tf-coma/coma-model/tensorboard/" + run_name + "/"
 
 # load reference mesh file
 date_print("Loading template mesh.")
