@@ -15,6 +15,7 @@ from model.model import coma_ae
 import model.model_util as model_util
 from tensorflow import keras
 import tensorflow as tf
+import model.tboard as tboard
 
 ## experimental config for memory growth on tf with gpu
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -138,7 +139,7 @@ num_input_features = int(x_train.shape[-1])
 
 
 # Training parameters and regularization:
-learning_rate = 8e-3  # done
+learning_rate = 1e-2  # done TODO; original was 8e-3
 decay_rate = 0.99  # done
 momentum = 0.9  # done
 decay_steps = num_train / batch_size  # done
@@ -174,13 +175,16 @@ if perform_training:
                                                     verbose=1)
 
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=tensorboard_dir)
+    mesh_callback = tboard.MeshCallback(tb_meshes=x_val[0:64], template_mesh=template_mesh,
+                                        batch_size=batch_size,
+                                        log_dir=tensorboard_dir, mesh_data=mesh_data)
 
     coma_model.fit(x_train, x_train,
                    batch_size=batch_size,
                    epochs=num_epochs,
                    shuffle=True,
                    validation_freq=validation_frequency,
-                   validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback],
+                   validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback, mesh_callback],
                    initial_epoch=initial_epoch)
 
 if perform_testing:
