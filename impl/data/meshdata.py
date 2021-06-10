@@ -120,7 +120,7 @@ class MeshData(object):
 
 def meshPlay(folder, every=100, wait=0.05):
     """"
-    Displays the meshes in the given folder in a MeshViwer
+    Displays the meshes in the given folder in a MeshViewer
     """
     files = glob.glob(folder + '/*')
     files.sort()
