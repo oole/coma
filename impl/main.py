@@ -151,13 +151,16 @@ coma_model = coma_ae(num_input_features=num_input_features,
                      Ks=polynom_orders,
                      num_latent=num_latent, batch_size=batch_size)
 
-coma_model.compile(loss=keras.losses.MeanAbsoluteError(),
+coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Reduction.SUM_OVER_BATCH_SIZE),
                    optimizer=keras.optimizers.SGD(
-                       learning_rate=model_util.get_learning_rate_decay_schedule(learning_rate, decay_rate, decay_steps),
+                       learning_rate=model_util.get_learning_rate_decay_schedule(learning_rate, decay_rate,
+                                                                                 decay_steps),
                        momentum=momentum), metrics=[keras.metrics.MeanAbsoluteError()])
+
 
 if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
     coma_model.load_weights(load_checkpoint + "/")
+
 
 if perform_training:
     save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/",
