@@ -99,7 +99,13 @@ class encoder(keras.Model):
                                                          batch_size=batch_size))
 
         self.flatten = tf.keras.layers.Flatten()
-        self.dense = tf.keras.layers.Dense(num_latent)
+        self.dense = tf.keras.layers.Dense(num_latent,
+                                           activation=keras.activations.relu,
+                                           use_bias=True,
+                                           bias_regularizer=keras.regularizers.L2(),
+                                           bias_initializer=keras.initializers.constant(value=0.1),
+                                           kernel_regularizer=keras.regularizers.L2(),
+                                           kernel_initializer=keras.initializers.truncated_normal(mean=0.0, stddev=0.1))
 
     def call(self, input_tensor):
         x = input_tensor
@@ -144,7 +150,14 @@ class decoder(keras.Model):
         super(decoder, self).__init__(**kwargs)
         initial_size = upsampling_transformations[-1].shape[1]
         initial_num_features = num_features[-1]
-        self.fc = keras.layers.Dense(initial_size * initial_num_features)
+        self.fc = keras.layers.Dense(initial_size * initial_num_features,
+                                     activation=keras.activations.relu,
+                                     use_bias=True,
+                                     bias_regularizer=keras.regularizers.L2(),
+                                     bias_initializer=keras.initializers.constant(value=0.1),
+                                     kernel_regularizer=keras.regularizers.L2(),
+                                     kernel_initializer=keras.initializers.truncated_normal(mean=0.0, stddev=0.1))
+
         self.reshape = keras.layers.Reshape((initial_size, initial_num_features))
         self.decoder_blocks = []
         for i in range(len(num_features)):
