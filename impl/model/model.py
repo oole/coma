@@ -50,6 +50,14 @@ class coma_ae(keras.Model):
         x = self.decoder(x)
         return x
 
+    def encode(self, input_tensor):
+        x = self.encoder(input_tensor)
+        return x
+
+    def decode(self, input_tensor):
+        x = self.decoder(input_tensor)
+        return x
+
     def model(self, input_shape, batch_size):
         x = keras.Input(shape=(input_shape[1], input_shape[2]), batch_size=batch_size)
         print(x.shape)

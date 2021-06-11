@@ -6,7 +6,7 @@ import argparse
 
 from numpy import save
 
-from util import mesh_sampling, mesh_util
+from util import mesh_sampling, mesh_util, latent_magic
 from util.log_util import date_print
 from psbody.mesh import MeshViewers, Mesh
 from data import meshdata
@@ -60,6 +60,7 @@ run_name = "lr_0.01-mesh_vis"
 perform_training = True
 perform_testing = True
 sanity_check = False
+perform_play = False
 # load_checkpoint = "/home/oole/coma-model/checkpoint/" + run_name
 load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/" + run_name
 
@@ -198,5 +199,7 @@ if sanity_check:
     x_result = coma_model.predict(x_reference, batch_size=batch_size)
     mesh_util.visualizeSideBySide(original=x_reference, prediction=x_result, number_of_meshes=1, mesh_data=mesh_data)
 
+if perform_play:
+    latent_magic.play_with_latent_space(model = coma_model, mesh_data=mesh_data, batch_size=batch_size)
 print("Result visualization")
 # ----- Create model
