@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from opendr.topology import get_vert_connectivity, get_vertices_per_edge
+from opendr import topology as topology
 import scipy.sparse as sparse
 from psbody.mesh import Mesh
 # This module provides an implementation of the heap queue algorithm, also known as the priority queue algorithm.
@@ -57,7 +57,7 @@ def vertex_quadrics(mesh: Mesh):
 
 def setup_deformation_transfer(source, target):
     """
-    Returns the upsampling transofrmation given the source and target mesh.
+    Returns the upsampling transformation given the source and target mesh.
     Source mesh is less downsampled than target mesh. So that there are vertices in the source mesh which do not have
     corresponding vertices in the target mesh.
 
@@ -109,7 +109,6 @@ def setup_deformation_transfer(source, target):
             # Closest surface point a vertex
             coeffs_v[3 * i + n_id - 4] = 1.0
 
-
     matrix = sparse.csc_matrix((coeffs_v, (rows, cols)), shape=(target.v.shape[0], source.v.shape[0]))
     return matrix
 
@@ -126,7 +125,7 @@ def qslim_decimator_transformer(mesh: Mesh, factor=None, n_verts_desired=None):
 
     Uses a qslime-style approach. (Which is essentially vertex-pair contraction)
     (QSlim: https://www.cs.cmu.edu/~garland/quadrics/qslim.html)
-    Uses quadratic error matrices
+    Uses quadric error matrices
 
     :param factor: fraction of the original number of vertices to retain
     :param n_verts_desired: number of the original vertices to retain
@@ -144,9 +143,9 @@ def qslim_decimator_transformer(mesh: Mesh, factor=None, n_verts_desired=None):
 
     # Get array of edges, indicates vertex-vertex adjacency nx2, n number of edges
 
-    adj_verts = get_vertices_per_edge(mesh.v, mesh.f)
+    adj_verts = topology.get_vertices_per_edge(mesh.v, mesh.f)
     #
-    # creates upper diaognal of adjecency matrix
+    # creates upper diagonal of adjecency matrix
     adj_verts = sparse.csc_matrix((np.full(len(adj_verts), 1, dtype=np.int32), (adj_verts[:, 0], adj_verts[:, 1])),
                                   shape=(len(mesh.v), len(mesh.v)))
 
@@ -189,7 +188,7 @@ def qslim_decimator_transformer(mesh: Mesh, factor=None, n_verts_desired=None):
             continue
 
         cost = collapse_cost(Qv, r, c, mesh.v)['collapse_cost']
-        heapq.heappush(queue, (cost, (r,c,)))
+        heapq.heappush(queue, (cost, (r, c)))
 
     ### Now we have calculated the removal and collapsing costs for all edges/vertex pairs
     # next step: which ones do we actually remove:
@@ -234,13 +233,12 @@ def qslim_decimator_transformer(mesh: Mesh, factor=None, n_verts_desired=None):
                 # ! doesnt work: queue[i][1][0] = to_keep, tuple does not support assignment
                 queue[i] = (queue[i][0], (to_keep, queue[i][1][1]))
             for i in indices_replace_1:
-                #queue[i][1][1] = to_keep
+                # queue[i][1][1] = to_keep
                 queue[i] = (queue[i][0], (queue[i][1][0], to_keep))
 
             # new cost for vertices:
             Qv[r, :, :] = cost['Qsum']
             Qv[c, :, :] = cost['Qsum']
-
 
             # Check which faces are unique
             # There might be some which yield True, these can be removed
@@ -305,22 +303,23 @@ def generate_transformation_matrices(mesh: Mesh, factors):
 
     factors = map(lambda x: 1.0 / x, factors)
 
-    M, A, D, U = [], [], [], []
+    M, A, D, U, F= [], [], [], [], []
 
     # Set initial adjecency matrix and mesh
-    A.append(get_vert_connectivity(mesh_v=mesh.v, mesh_f=mesh.f))
+    A.append(topology.get_vert_connectivity(mesh_v=mesh.v, mesh_f=mesh.f))
     M.append(mesh)
 
     for factor in factors:
         # get faces and the transformation
         ds_f, ds_D = qslim_decimator_transformer(M[-1], factor=factor)
         D.append(ds_D)
+        F.append(ds_f)
         # apply transformation to get vertices for next downsampling step
         new_mesh_v = ds_D.dot(M[-1].v)
         new_mesh = Mesh(v=new_mesh_v, f=ds_f)
         M.append(new_mesh)
-        A.append(get_vert_connectivity(new_mesh.v, new_mesh.f))
+        A.append(topology.get_vert_connectivity(new_mesh.v, new_mesh.f))
         # get upsampling transformation by vertex projection
         U.append(setup_deformation_transfer(M[-1], M[-2]))
 
-    return M, A, D, U
+    return M, A, D, U, F

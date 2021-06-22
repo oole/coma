@@ -3,10 +3,11 @@ import copy
 import time
 import numpy as np
 import argparse
+from sklearn.metrics.pairwise import euclidean_distances
 
 from numpy import save
 
-from util import mesh_sampling, mesh_util, latent_magic
+from util import mesh_sampling, mesh_util, latent_magic, spiral_util
 from util.log_util import date_print
 from psbody.mesh import MeshViewers, Mesh
 from data import meshdata
@@ -56,22 +57,24 @@ num_epochs = 300
 initial_epoch = 0
 validation_frequency = 10
 
-run_name = "lr_0.01-mesh_vis"
-perform_training = True
-perform_testing = True
+convolution_method = 'spiral'  # 'spectral'
+
+run_name = "decoder-out-lr_0.01-mesh_vis"
+perform_training = False
+perform_testing = False
 sanity_check = False
-perform_play = False
-# load_checkpoint = "/home/oole/coma-model/checkpoint/" + run_name
-load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/" + run_name
+perform_play = True
+load_checkpoint = "/home/oole/coma-model/checkpoint/" + run_name
+# load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/" + run_name
 
 save_checkpoint = load_checkpoint
-# tensorboard_dir = "/home/oole/coma-model/tensorboard/" + run_name + "/"
-tensorboard_dir = "/abyss/home/tf-coma/coma-model/tensorboard/" + run_name + "/"
+tensorboard_dir = "/home/oole/coma-model/tensorboard/" + run_name + "/"
+# tensorboard_dir = "/abyss/home/tf-coma/coma-model/tensorboard/" + run_name + "/"
 
 # load reference mesh file
 date_print("Loading template mesh.")
-# template_mesh_path = "/home/oole/git/ma/coma/impl"
-template_mesh_path = "/workspace/coma/impl/data/template.obj"
+template_mesh_path = "/home/oole/git/ma/coma/impl/data/template.obj"
+# template_mesh_path = "/workspace/coma/impl/data/template.obj"
 template_mesh = Mesh(filename=template_mesh_path)
 
 # downsampling factors at each stage of sampling
@@ -86,13 +89,27 @@ downsampling_factors = [4, 4, 4, 4]
 date_print("Precomputing adjecency/downsampling/upsampling matrices and graph laplaciancs according to adjecency "
            "matrices based on templat mesh")
 
-meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices = mesh_sampling.generate_transformation_matrices(
+meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices, downsampled_faces = mesh_sampling.generate_transformation_matrices(
     template_mesh, downsampling_factors)
 
 adjecency_matrices = [x.astype('float32') for x in adjecency_matrices]  # convertType(adjecency_matrices)
 downsampling_matrices = [x.astype('float32') for x in downsampling_matrices]
 upsampling_matrices = [x.astype('float32') for x in upsampling_matrices]
+downsampled_faces = [x.astype('float') for x in downsampled_faces]
 p = [x.shape[0] for x in adjecency_matrices]
+
+if convolution_method == 'spiral':
+    step_sizes = [1, 1, 1, 1]
+
+    reference_points = [[414]]
+    for i in range(len(downsampling_factors)):
+        dist = euclidean_distances(meshes[i + 1].v, meshes[0].v[reference_points[0]])
+        reference_points.append(np.argmin(dist, axis=0).tolist())
+
+    adj, triangles = spiral_util.get_adj_trig(adjecency_matrices=adjecency_matrices, faces=downsampled_faces,
+                                              reference_mesh=template_mesh)
+    spiral_util.generate_spirals(step_sizes=step_sizes, meshes=meshes, Adj=adj, triangles=triangles,
+                                 reference_points=reference_points, )
 
 # A: 5023x5023, 1256x1256, 314x314, 79x79, 20x20
 # D: 1256x5023, 314x1256, 79x314, 20x79
@@ -105,8 +122,8 @@ laplacians = [graph.laplacian(matrix) for matrix in adjecency_matrices]
 # L same dimensions as adjecency_matrices
 # ----- Read dataset
 
-mesh_data = meshdata.MeshData(number_val=100, train_file="/abyss/home/face-data/processed-data/sliced" + '/train.npy',
-                              test_file="/abyss/home/face-data/processed-data/sliced" + '/test.npy',
+mesh_data = meshdata.MeshData(number_val=100, train_file="/media/oole/Storage/Msc/processed-data/sliced" + '/train.npy',
+                              test_file="/media/oole/Storage/Msc/processed-data/sliced" + '/test.npy',
                               reference_mesh_file=template_mesh_path)
 
 x_train = mesh_data.vertices_train.astype('float32')
@@ -164,10 +181,8 @@ coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Re
                                                                                  decay_steps),
                        momentum=momentum), metrics=[keras.metrics.MeanAbsoluteError()])
 
-
 if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
     coma_model.load_weights(load_checkpoint + "/")
-
 
 if perform_training:
     save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/",
@@ -200,6 +215,6 @@ if sanity_check:
     mesh_util.visualizeSideBySide(original=x_reference, prediction=x_result, number_of_meshes=1, mesh_data=mesh_data)
 
 if perform_play:
-    latent_magic.play_with_latent_space(model = coma_model, mesh_data=mesh_data, batch_size=batch_size)
+    latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
 print("Result visualization")
 # ----- Create model

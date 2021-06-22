@@ -4,6 +4,7 @@ from util import graph_util
 from scipy import sparse
 import numpy as np
 
+
 class cheb_conv(layers.Layer):
     """
     Chebyshev Convolutional layer
@@ -69,6 +70,40 @@ class cheb_conv(layers.Layer):
 
         return tf.reshape(x, [self.batch_size, tf.shape(input_tensor)[1], self.output_features])
 
+class spiral_conv(layers.Layer):
+    """
+    Spiral Convolutional layer
+
+    :param input_features: Size of each input sample
+    :param output_features: The number of output features
+    :param K: Chebyshev filter size
+    :param laplacian: The laplacian for the input mesh
+    :param batch_size: The batch_size
+    :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
+    """
+
+    def __init__(self, K, input_features, output_features, spiral_size, batch_size, **kwargs):
+        super(spiral_conv, self).__init__(**kwargs)
+        self.K = K
+        self.input_features = input_features
+        self.output_features = output_features
+        self.spiral_size = spiral_size
+        self.batch_size = batch_size
+
+    def build(self, input_shape):
+        self.w = self.add_weight(
+            name='w',
+            shape=(self.inpu_features * self.spiral_size, self.output_features),
+            initializer=tf.keras.initializers.truncated_normal(mean=0.0, stddev=0.1),
+            trainable=True,
+            # In original implementation there's no regularization for the chebychev layer weights
+            # regularizer=tf.keras.regularizers.L2()
+        )
+
+    def call(self, input_tensor):
+        print("not implemented")
+        return input_tensor
+
 
 class sampling(layers.Layer):
     """
@@ -79,6 +114,7 @@ class sampling(layers.Layer):
     :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
+
     def __init__(self, sampling_transformation, input_features, batch_size, **kwargs):
         super(sampling, self).__init__(**kwargs)
         self.sampling_transformation = sampling_transformation
@@ -115,6 +151,7 @@ class encoder_block(layers.Layer):
     :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
+
     def __init__(self,
                  laplacian,
                  K,
@@ -152,6 +189,7 @@ class decoder_block(layers.Layer):
     :param batch_size: The batch size
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
+
     def __init__(self, laplacian, K, input_features, output_features, upsampling_transformation, batch_size, **kwargs):
         super(decoder_block, self).__init__(**kwargs)
         self.upsampling_1 = sampling(sampling_transformation=upsampling_transformation,
@@ -177,6 +215,7 @@ class bias_relu(layers.Layer):
     """
     Custom relu layer that adds a bias.
     """
+
     def __init__(self, **kwargs):
         super(bias_relu, self).__init__(**kwargs)
 
@@ -191,5 +230,3 @@ class bias_relu(layers.Layer):
 
     def call(self, input_tensor):
         return tf.nn.relu(input_tensor + self.b)
-
-
