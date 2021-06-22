@@ -14,7 +14,7 @@ def play_with_latent_space(model: model.model.coma_ae, mesh_data, batch_size, me
         x_reference = np.full((batch_size, 5023, 3), mesh_data.reference_mesh.v)
 
     latent_representation = model.encode(x_reference).numpy()
-    viewer = MeshViewers(shape=(1, 1), titlebar="Above:Original, Below: Prediction")
+    viewer = MeshViewers(shape=(1, 1), titlebar="Interactive Latent Representation")
     date_print(str(latent_representation[0]))
     while(1):
         # date_print("Change latent representation +(1,2,3,4,5,6,7,8,9) -(q,w,e,r,t,y,u,i).")
