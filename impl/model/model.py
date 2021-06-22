@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import os, time, collections, shutil
-from model.o_layers import encoder_block, decoder_block
+from model.o_layers import encoder_block, decoder_block, cheb_conv
 from tensorflow import keras
 
 
@@ -48,6 +48,14 @@ class coma_ae(keras.Model):
     def call(self, input_tensor):
         x = self.encoder(input_tensor)
         x = self.decoder(x)
+        return x
+
+    def encode(self, input_tensor):
+        x = self.encoder(input_tensor)
+        return x
+
+    def decode(self, input_tensor):
+        x = self.decoder(input_tensor)
         return x
 
     def model(self, input_shape, batch_size):
@@ -176,12 +184,19 @@ class decoder(keras.Model):
                                                          output_features=num_features[-i - 2],
                                                          upsampling_transformation=upsampling_transformations[-i - 1],
                                                          batch_size=batch_size))
+        self.decoder_output = cheb_conv(
+            input_features=num_output_features,
+            output_features=num_output_features,
+            K=Ks[0],
+            laplacian=laplacians[0],
+            batch_size=batch_size)
 
     def call(self, input_tensor):
         x = self.fc(input_tensor)
         x = self.reshape(x)
         for i in range(len(self.decoder_blocks)):
             x = self.decoder_blocks[i](x)
+        x = self.decoder_output(x)
         return x
 
     def model(self, input_shape, batch_size):
