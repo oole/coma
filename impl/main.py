@@ -169,6 +169,7 @@ coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Re
 if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
     coma_model.load_weights(load_checkpoint + "/")
 
+# mesh_util.pageThroughMeshes(mesh_data.vertices_train.astype('float32'), mesh_data)
 
 if perform_training:
     save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/",
