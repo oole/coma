@@ -18,13 +18,14 @@ class cheb_conv(layers.Layer):
     :param **kwargs: (optional) additional arguments of :class: `tf.keras.layers.Layer`.
     """
 
-    def __init__(self, K, input_features, output_features, laplacian, batch_size, **kwargs):
+    def __init__(self, K, input_features, output_features, laplacian, batch_size, regularization=None,  **kwargs):
         super(cheb_conv, self).__init__(**kwargs)
         self.K = K
         self.input_features = input_features
         self.output_features = output_features
         self.laplacian = laplacian
         self.batch_size = batch_size
+        self.regularization = regularization
 
     def build(self, input_shape):
         # build layer weights
@@ -36,14 +37,25 @@ class cheb_conv(layers.Layer):
         L = tf.sparse.reorder(L)
         self.L = L
 
-        self.w = self.add_weight(
-            name='w',
-            shape=(self.input_features * self.K, self.output_features),
-            initializer=tf.keras.initializers.truncated_normal(mean=0.0, stddev=0.1),
-            trainable=True,
-            # In original implementation there's no regularization for the chebychev layer weights
-            # regularizer=tf.keras.regularizers.L2()
-        )
+        if self.regularization is None:
+            self.w = self.add_weight(
+                name='w',
+                shape=(self.input_features * self.K, self.output_features),
+                initializer=tf.keras.initializers.truncated_normal(mean=0.0, stddev=0.1),
+                trainable=True,
+                # In original implementation there's no regularization for the chebychev layer weights
+                # regularizer=tf.keras.regularizers.L2()
+            )
+        else:
+            print("Add L1 output-weight regularization")
+            self.w = self.add_weight(
+                name='w',
+                shape=(self.input_features * self.K, self.output_features),
+                initializer=tf.keras.initializers.truncated_normal(mean=0.0, stddev=0.1),
+                trainable=True,
+                # In original implementation there's no regularization for the chebychev layer weights
+                regularizer=tf.keras.regularizers.L1(self.regularization)
+            )
 
     def call(self, input_tensor):
         # tansform input to chebyshev basis

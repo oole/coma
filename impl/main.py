@@ -156,7 +156,8 @@ coma_model = coma_ae(num_input_features=num_input_features,
                      downsampling_transformations=downsampling_matrices,
                      upsampling_transformations=upsampling_matrices,
                      Ks=polynom_orders,
-                     num_latent=num_latent, batch_size=batch_size)
+                     num_latent=num_latent, batch_size=batch_size,
+                     regularization=regularization)
 
 coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Reduction.SUM_OVER_BATCH_SIZE),
                    optimizer=keras.optimizers.SGD(

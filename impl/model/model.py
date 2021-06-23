@@ -29,6 +29,7 @@ class coma_ae(keras.Model):
                  Ks,
                  num_latent,
                  batch_size,
+                 regularization,
                  **kwargs):
         super(coma_ae, self).__init__(**kwargs)
         self.encoder = encoder(num_input_features=num_input_features,
@@ -43,7 +44,8 @@ class coma_ae(keras.Model):
                                laplacians=laplacians,
                                upsampling_transformations=upsampling_transformations,
                                Ks=Ks,
-                               batch_size=batch_size)
+                               batch_size=batch_size,
+                               regularization=regularization)
 
     def call(self, input_tensor):
         x = self.encoder(input_tensor)
@@ -154,6 +156,7 @@ class decoder(keras.Model):
                  upsampling_transformations,
                  Ks,
                  batch_size,
+                 regularization,
                  **kwargs):
         super(decoder, self).__init__(**kwargs)
         initial_size = upsampling_transformations[-1].shape[1]
@@ -189,7 +192,8 @@ class decoder(keras.Model):
             output_features=num_output_features,
             K=Ks[0],
             laplacian=laplacians[0],
-            batch_size=batch_size)
+            batch_size=batch_size,
+            regularization=regularization)
 
     def call(self, input_tensor):
         x = self.fc(input_tensor)
