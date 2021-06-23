@@ -21,30 +21,31 @@ class MeshCallback(keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         prediction = self.model.predict(self.tb_meshes, batch_size=self.batch_size)
 
-        tb_mesh_one = self.mesh_data.vec2mesh(self.tb_meshes[0])
-        prediction_one = self.mesh_data.vec2mesh(prediction[0])
-
         with self.writer.as_default():
 
-            # points with color code
-            points_rec = prediction_one.v
-            points_original = tb_mesh_one.v
-            # Idea: elementwise euclidean distance, normalized, and then colorized on reconstruction.
-            error = np.abs(np.linalg.norm(points_rec - points_original, axis=1))
-            error_norm = (error - np.min(error)) / np.max(error)
-            # Use this to color:
-            error_color = np.array([(error * 255, (1 - error) * 255, 0) for error in error_norm])
 
             # original
-            mesh_summary.mesh(name="original_mesh", vertices=np.expand_dims(points_original, 0),
-                              faces=np.expand_dims(tb_mesh_one.f, 0),
-                              colors=np.expand_dims(error_color, 0),
-                              step=epoch)
-            # reconstruction
-            mesh_summary.mesh(name="reconstructed_mesh", vertices=np.expand_dims(points_rec, 0),
-                              faces=np.expand_dims(prediction_one.f, 0),
-                              colors=np.expand_dims(error_color, 0),
-                              step=epoch)
+            for i in range(self.batch_size):
+                tb_mesh_one = self.mesh_data.vec2mesh(self.tb_meshes[i])
+                prediction_one = self.mesh_data.vec2mesh(prediction[i])
+                # points with color code
+                points_rec = prediction_one.v
+                points_original = tb_mesh_one.v
+                # Idea: elementwise euclidean distance, normalized, and then colorized on reconstruction.
+                error = np.abs(np.linalg.norm(points_rec - points_original, axis=1))
+                error_norm = (error - np.min(error)) / np.max(error)
+                # Use this to color:
+                error_color = np.array([(error * 255, (1 - error) * 255, 0) for error in error_norm])
+
+                mesh_summary.mesh(name="original_mesh_" + str(i) + "_vis", vertices=np.expand_dims(points_original, 0),
+                                  faces=np.expand_dims(tb_mesh_one.f, 0),
+                                  colors=np.expand_dims(error_color, 0),
+                                  step=epoch)
+                # reconstruction
+                mesh_summary.mesh(name="reconstructed_mesh_" + str(i) + "_vis", vertices=np.expand_dims(points_rec, 0),
+                                  faces=np.expand_dims(prediction_one.f, 0),
+                                  colors=np.expand_dims(error_color, 0),
+                                  step=epoch)
             # faces = np.expand_dims(np.vstack((prediction_one.f, tb_mesh_one.v)), 0)
 
             # visualize error....

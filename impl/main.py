@@ -179,7 +179,15 @@ if perform_training:
                                                     verbose=1)
 
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=tensorboard_dir)
-    mesh_callback = tboard.MeshCallback(tb_meshes=x_val[0:64], template_mesh=template_mesh,
+
+    tensorboard_mesh_indices = [0, 82, 94, 109, 159, 227, 342, 373, 454, 553, 591, 617, 747, 880, 980, 1008, 1079, 1223,
+                                1524, 1642, 1780, 1807, 1973, 2029, 2155, 2202, 2381, 2459, 2544, 2631, 2766, 2902,
+                                2975, 3060, 3153, 3285, 3354, 3535, 3771, 3848, 4033, 4196, 4339, 4514, 4664, 4790,
+                                4858, 5339, 5384, 5513, 5562, 5699, 5756, 5847, 6045, 6313, 6499, 6723, 6781, 7133,
+                                7201, 7353, 7509, 7671]
+    tensorboard_mesh_indices = tensorboard_mesh_indices[:64]
+    tensorboard_meshes = np.array([x_train[i] for i in tensorboard_mesh_indices])
+    mesh_callback = tboard.MeshCallback(tb_meshes=tensorboard_meshes, template_mesh=template_mesh,
                                         batch_size=batch_size,
                                         log_dir=tensorboard_dir, mesh_data=mesh_data)
 
