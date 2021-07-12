@@ -23,28 +23,8 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # prevent information messages from tensorflow (such as "cuda loaded" etc)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-parser = argparse.ArgumentParser(description="Trainer for Convolutional Mesh Autoencoders")
-parser.add_argument('--name', default='bareteeth', help='facial_motion| lfw ')
-parser.add_argument('--data', default='data/bareteeth', help='facial_motion| lfw ')
-parser.add_argument('--batch_size', type=int, default=16, help='input batch size for training (default: 64)')
-parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train (default: 2)')
-parser.add_argument('--eval_frequency', type=int, default=200, help='eval frequency')
-parser.add_argument('--filter', default='chebyshev5', help='filter')
-parser.add_argument('--nz', type=int, default=8, help='Size of latent variable')
-parser.add_argument('--lr', type=float, default=8e-3, help='Learning Rate')
-parser.add_argument('--workers', type=int, default=4, help='number of data loading threads')
-parser.add_argument('--no-cuda', action='store_true', default=False, help='enables CUDA training')
-parser.add_argument('--seed', type=int, default=2, help='random seed (default: 1)')
-parser.add_argument('--mode', default='train', type=str, help='train or test')
-parser.add_argument('--viz', type=int, default=0, help='visualize while test')
-parser.add_argument('--loss', default='l1', help='l1 or l2')
-parser.add_argument('--mesh1', default='m1', help='for mesh interpolation')
-parser.add_argument('--mesh2', default='m1', help='for mesh interpolation')
-
-args = parser.parse_args()
-
 # set random seed
-np.random.seed(args.seed)
+np.random.seed(2)
 # dimension of latent variable
 working_dir = ""  # TODO
 
@@ -146,7 +126,7 @@ decay_rate = 0.99  # done
 momentum = 0.9  # done
 decay_steps = num_train / batch_size  # done
 dropout = 1  # TODO
-regularization = 5e-4  # TODO
+regularization = 5e-4
 
 # Model configuration
 # model = models.coma(L=L, D=D, U=U, **parameters)
@@ -167,12 +147,12 @@ coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Re
 
 
 if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
-    coma_model.load_weights(load_checkpoint + "/")
+    coma_model.load_weights(load_checkpoint + "/coma_model")
 
 # mesh_util.pageThroughMeshes(mesh_data.vertices_train.astype('float32'), mesh_data)
 
 if perform_training:
-    save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/",
+    save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/coma_model",
                                                     save_weights_only=True,
                                                     monitor='loss',
                                                     save_best_only=False,
@@ -210,6 +190,6 @@ if sanity_check:
     mesh_util.visualizeSideBySide(original=x_reference, prediction=x_result, number_of_meshes=1, mesh_data=mesh_data)
 
 if perform_play:
-    latent_magic.play_with_latent_space(model = coma_model, mesh_data=mesh_data, batch_size=batch_size)
+    latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
 print("Result visualization")
 # ----- Create model
