@@ -165,7 +165,7 @@ if perform_training:
                                 2975, 3060, 3153, 3285, 3354, 3535, 3771, 3848, 4033, 4196, 4339, 4514, 4664, 4790,
                                 4858, 5339, 5384, 5513, 5562, 5699, 5756, 5847, 6045, 6313, 6499, 6723, 6781, 7133,
                                 7201, 7353, 7509, 7671]
-    tensorboard_mesh_indices = tensorboard_mesh_indices[:64]
+    tensorboard_mesh_indices = tensorboard_mesh_indices[:batch_size]
     tensorboard_meshes = np.array([x_train[i] for i in tensorboard_mesh_indices])
     mesh_callback = tboard.MeshCallback(tb_meshes=tensorboard_meshes, template_mesh=template_mesh,
                                         batch_size=batch_size,
