@@ -1,10 +1,7 @@
 import os
-import copy
-import time
+import json
 import numpy as np
 import argparse
-
-from numpy import save
 
 from util import mesh_sampling, mesh_util, latent_magic
 from util.log_util import date_print
@@ -23,35 +20,61 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # prevent information messages from tensorflow (such as "cuda loaded" etc)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# set random seed
-np.random.seed(2)
-# dimension of latent variable
-working_dir = ""  # TODO
+parser = argparse.ArgumentParser(description="Convolutional Mesh Autoencoder written for Tensorflow 2")
+parser.add_argument("--name", default="default-run-name",
+                    help="The name of the run (used for checkpoints and tensorboard")
+parser.add_argument("--data-folder", default="data/sliced",
+                    help="Path to the data folder containing train.npy and test.npy")
+parser.add_argument("--automatic-run-name", type=bool, default=False,
+                    help="Whether the run name should be automatically constructed (default is False)")
+parser.add_argument("--batch-size", type=int, default=16, help="The batch size to be used (default is 16)")
+parser.add_argument("--num-epochs", type=int, default=300, help="The number of training epochs (default is 300")
+parser.add_argument("--initial-epoch", type=int, default=0,
+                    help="The initial epoch, useful for continue training on an existing run (default 0)")
+parser.add_argument("--latent-vector-length", type=int, default=8, help="The size of the latent vector (default is 8)")
+parser.add_argument("--validation-frequency", type=int, default=10, help="The validation frequency")
+parser.add_argument("--learning-rate", type=float, default=8e-3, help="The learning rate (default is 8e-3")
+parser.add_argument("--random-seed", type=int, default=2, help="The random seed (default is 8)")
+parser.add_argument("--template-mesh", default="data/template.obj", help="Path to the template mesh")
+parser.add_argument("--mode", default="train", help="The mode to run in (train, test, latent")
+parser.add_argument("--sanity-check", type=bool, default=False, help="Whether or not sanity check should be performed")
+parser.add_argument("--coma-model-dir", default="/home/oole/coma-model",
+                    help="The directory holding checkpoints and tensorboard (Such as /home/oole/coma-model/tensorboard or /home/oole/coma-model/checkpoint)")
+parser.add_argument("--visualize-during-training", type=bool, default=False,
+                    help="Whether the meshes should be visualized in tensorboard during training")
+
+args = parser.parse_args()
+
+# Set parsed arguments
+run_name = args.name
+np.random.seed(args.random_seed)
+num_latent = args.latent_vector_length
+batch_size = args.batch_size
+num_epochs = args.num_epochs
+initial_epoch = args.initial_epoch
+validation_frequency = args.validation_frequency
+
+base_coma_model_dir = args.coma_model_dir
+base_data_folder = args.data_folder
+
+template_mesh_path = args.template_mesh
+
+learning_rate = args.learning_rate  # 1e-2  # done TODO; original was 8e-3
 
 num_features = [16, 16, 16, 32]  # number of conv filters per conv layer
 polynom_orders = [6, 6, 6, 6]  # polynomial orders
-num_latent = 8
-batch_size = 64
-num_epochs = 300
-initial_epoch = 0
-validation_frequency = 10
 
-run_name = "lr_0.01-mesh_vis"
-perform_training = True
-perform_testing = True
-sanity_check = False
-perform_play = False
-# load_checkpoint = "/home/oole/coma-model/checkpoint/" + run_name
-load_checkpoint = "/abyss/home/tf-coma/coma-model/checkpoint/" + run_name
+# used for local model:
+load_checkpoint = base_coma_model_dir + "/checkpoint/" + run_name
 
 save_checkpoint = load_checkpoint
-# tensorboard_dir = "/home/oole/coma-model/tensorboard/" + run_name + "/"
-tensorboard_dir = "/abyss/home/tf-coma/coma-model/tensorboard/" + run_name + "/"
+# used for local model:
+tensorboard_dir = base_coma_model_dir + "tensorboard/" + run_name + "/"
 
 # load reference mesh file
 date_print("Loading template mesh.")
-# template_mesh_path = "/home/oole/git/ma/coma/impl"
-template_mesh_path = "/workspace/coma/impl/data/template.obj"
+
+# template_mesh_path = "/workspace/coma/impl/data/template.obj"
 template_mesh = Mesh(filename=template_mesh_path)
 
 # downsampling factors at each stage of sampling
@@ -66,8 +89,20 @@ downsampling_factors = [4, 4, 4, 4]
 date_print("Precomputing adjecency/downsampling/upsampling matrices and graph laplaciancs according to adjecency "
            "matrices based on templat mesh")
 
-meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices = mesh_sampling.generate_transformation_matrices(
-    template_mesh, downsampling_factors)
+if not os.path.exists("computed/meshes-save.npy"):
+    meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices = mesh_sampling.generate_transformation_matrices(
+        template_mesh, downsampling_factors)
+    if not os.path.exists("computed"):
+        os.makedirs("computed")
+    np.save("computed/meshes-save.npy", meshes)
+    np.save("computed/adjecency_matrcies-save.npy", adjecency_matrices)
+    np.save("computed/downsampling_matrices-save.npy", downsampling_matrices)
+    np.save("computed/upsampling_matrices-save.npy", upsampling_matrices)
+else:
+    meshes = np.load("meshes-save.npy", allow_pickle=True)
+    adjecency_matrices = np.load("computed/adjecency_matrcies-save.npy", allow_pickle=True)
+    downsampling_matrices = np.load("computed/downsampling_matrices-save.npy", allow_pickle=True)
+    upsampling_matrices = np.load("computed/upsampling_matrices-save.npy", allow_pickle=True)
 
 adjecency_matrices = [x.astype('float32') for x in adjecency_matrices]  # convertType(adjecency_matrices)
 downsampling_matrices = [x.astype('float32') for x in downsampling_matrices]
@@ -85,8 +120,8 @@ laplacians = [graph.laplacian(matrix) for matrix in adjecency_matrices]
 # L same dimensions as adjecency_matrices
 # ----- Read dataset
 
-mesh_data = meshdata.MeshData(number_val=100, train_file="/abyss/home/face-data/processed-data/sliced" + '/train.npy',
-                              test_file="/abyss/home/face-data/processed-data/sliced" + '/test.npy',
+mesh_data = meshdata.MeshData(number_val=100, train_file=base_data_folder + '/train.npy',
+                              test_file=base_data_folder + '/test.npy',
                               reference_mesh_file=template_mesh_path)
 
 x_train = mesh_data.vertices_train.astype('float32')
@@ -109,23 +144,10 @@ parameters = dict()
 # Training configuration
 num_input_features = int(x_train.shape[-1])
 
-# Optimization TODO
-# parameters['which_loss'] = args.loss
-# parameters['nv'] = 784  # TODO check this value -> read from tempalte mesh
-# parameters['regularization'] = 5e-4
-# parameters['dropout'] = 1  # TODO ? no dropout?
-# parameters['learning_rate'] = args.lr
-# parameters['decay_rate'] = 0.99
-# parameters['momentum'] = 0.9
-# parameters['decay_steps'] = num_train / parameters['batch_size']
-
-
 # Training parameters and regularization:
-learning_rate = 1e-2  # done TODO; original was 8e-3
 decay_rate = 0.99  # done
 momentum = 0.9  # done
-decay_steps = num_train / batch_size  # done
-dropout = 1  # TODO
+decay_steps = num_train  # / batch_size  # done
 regularization = 5e-4
 
 # Model configuration
@@ -145,13 +167,33 @@ coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Re
                                                                                  decay_steps),
                        momentum=momentum), metrics=[keras.metrics.MeanAbsoluteError()])
 
-
 if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
     coma_model.load_weights(load_checkpoint + "/coma_model")
 
 # mesh_util.pageThroughMeshes(mesh_data.vertices_train.astype('float32'), mesh_data)
 
-if perform_training:
+if args.mode == "train":
+    # store parameters
+    parameter_dir = base_coma_model_dir + "/model-parameters"
+    if not os.path.exists(parameter_dir):
+        os.makedirs(parameter_dir)
+    parameter_file = parameter_dir + "/" + args.name + "_parameters.json"
+    with open(parameter_file, 'w') as file:
+        save_params = dict()
+        save_params['batch_size'] = args.batch_size
+        save_params['name'] =args.name
+        save_params['num_epochs'] = args.num_epochs
+        save_params['validation-frequency'] = args.validation_frequency
+        save_params['num_filters'] = num_features
+        save_params["polynom-orders"] = polynom_orders
+        save_params['random-seed'] = args.random_seed
+        save_params['learning-rate'] = args.learning_rate
+        save_params['decay-steps'] = decay_steps
+        save_params['decay-rate'] = decay_rate
+        save_params['momentum'] = momentum
+        save_params['regularization'] = regularization
+        save_params['num-latent'] = num_latent
+        json.dump(save_params, file)
     save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/coma_model",
                                                     save_weights_only=True,
                                                     monitor='loss',
@@ -160,6 +202,42 @@ if perform_training:
 
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=tensorboard_dir)
 
+    if args.visualize_during_training:
+        tensorboard_mesh_indices = [0, 82, 94, 109, 159, 227, 342, 373, 454, 553, 591, 617, 747, 880, 980, 1008, 1079,
+                                    1223,
+                                    1524, 1642, 1780, 1807, 1973, 2029, 2155, 2202, 2381, 2459, 2544, 2631, 2766, 2902,
+                                    2975, 3060, 3153, 3285, 3354, 3535, 3771, 3848, 4033, 4196, 4339, 4514, 4664, 4790,
+                                    4858, 5339, 5384, 5513, 5562, 5699, 5756, 5847, 6045, 6313, 6499, 6723, 6781, 7133,
+                                    7201, 7353, 7509, 7671]
+        tensorboard_mesh_indices = tensorboard_mesh_indices[:batch_size]
+        tensorboard_meshes = np.array([x_train[i] for i in tensorboard_mesh_indices])
+        mesh_callback = tboard.MeshCallback(tb_meshes=tensorboard_meshes, template_mesh=template_mesh,
+                                            batch_size=batch_size,
+                                            log_dir=tensorboard_dir, mesh_data=mesh_data)
+
+        coma_model.fit(x_train, x_train,
+                       batch_size=batch_size,
+                       epochs=num_epochs,
+                       shuffle=True,
+                       validation_freq=validation_frequency,
+                       validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback, mesh_callback],
+                       initial_epoch=initial_epoch)
+    else:
+        coma_model.fit(x_train, x_train,
+                       batch_size=batch_size,
+                       epochs=num_epochs,
+                       shuffle=True,
+                       validation_freq=validation_frequency,
+                       validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback],
+                       initial_epoch=initial_epoch)
+elif args.mode == "test":
+    result = coma_model.evaluate(x=x_test, y=x_test, batch_size=batch_size)
+    metric_names = coma_model.metrics_names
+    print(metric_names[0] + ": " + str(result[0]) + " -- " + metric_names[1] + ": " + str(result[1]))
+    result = coma_model.predict(x_test, batch_size=batch_size)
+    print(result.shape)
+    mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
+
     tensorboard_mesh_indices = [0, 82, 94, 109, 159, 227, 342, 373, 454, 553, 591, 617, 747, 880, 980, 1008, 1079, 1223,
                                 1524, 1642, 1780, 1807, 1973, 2029, 2155, 2202, 2381, 2459, 2544, 2631, 2766, 2902,
                                 2975, 3060, 3153, 3285, 3354, 3535, 3771, 3848, 4033, 4196, 4339, 4514, 4664, 4790,
@@ -167,29 +245,17 @@ if perform_training:
                                 7201, 7353, 7509, 7671]
     tensorboard_mesh_indices = tensorboard_mesh_indices[:batch_size]
     tensorboard_meshes = np.array([x_train[i] for i in tensorboard_mesh_indices])
-    mesh_callback = tboard.MeshCallback(tb_meshes=tensorboard_meshes, template_mesh=template_mesh,
-                                        batch_size=batch_size,
-                                        log_dir=tensorboard_dir, mesh_data=mesh_data)
 
-    coma_model.fit(x_train, x_train,
-                   batch_size=batch_size,
-                   epochs=num_epochs,
-                   shuffle=True,
-                   validation_freq=validation_frequency,
-                   validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback, mesh_callback],
-                   initial_epoch=initial_epoch)
+    tensorboard_meshes = tensorboard_meshes[:batch_size]
+    tb_result = coma_model.predict(tensorboard_meshes, batch_size=batch_size)
+    mesh_util.visualizeSideBySide(original=x_test, prediction=tb_result, number_of_meshes=10, mesh_data=mesh_data)
+elif args.mode == "latent":
+    latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
+elif args.mode == "sample":
+    # Todo sample from latent space
+    print("todo.")
 
-if perform_testing:
-    result = coma_model.predict(x_test, batch_size=batch_size)
-    print(result.shape)
-    mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
-
-if sanity_check:
+if args.sanity_check:
     x_reference = np.full((batch_size, 5023, 3), mesh_data.reference_mesh.v)
     x_result = coma_model.predict(x_reference, batch_size=batch_size)
     mesh_util.visualizeSideBySide(original=x_reference, prediction=x_result, number_of_meshes=1, mesh_data=mesh_data)
-
-if perform_play:
-    latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
-print("Result visualization")
-# ----- Create model
