@@ -42,6 +42,8 @@ parser.add_argument("--coma-model-dir", default="/home/oole/coma-model",
                     help="The directory holding checkpoints and tensorboard (Such as /home/oole/coma-model/tensorboard or /home/oole/coma-model/checkpoint)")
 parser.add_argument("--visualize-during-training", type=bool, default=False,
                     help="Whether the meshes should be visualized in tensorboard during training")
+parser.add_argument("--page-through", type=bool, default=False,
+                    help="Whether the test meshes should be opened in an interactive session")
 
 args = parser.parse_args()
 
@@ -133,9 +135,16 @@ date_print("Training shape:   \t" + str(x_train.shape))
 date_print("Validation shape: \t" + str(x_val.shape))
 date_print("Test shape:       \t" + str(x_test.shape))
 
-x_train = x_train[:-(x_train.shape[0] % batch_size)]
-x_val = x_val[:-(x_val.shape[0] % batch_size)]
-x_test = x_test[:-(x_test.shape[0] % batch_size)]
+x_train_cut = (x_train.shape[0] % batch_size)
+if x_train_cut > 0:
+    x_train = x_train[:-x_train_cut]
+x_val_cut = (x_val.shape[0] % batch_size)
+if x_val_cut > 0:
+    x_val = x_val[:-x_val_cut]
+x_test_cut = (x_test.shape[0] % batch_size)
+if x_test_cut > 0:
+    x_test = x_test[:-x_test_cut]
+    
 date_print("Training shape:   \t" + str(x_train.shape))
 date_print("Validation shape: \t" + str(x_val.shape))
 date_print("Test shape:       \t" + str(x_test.shape))
@@ -181,7 +190,7 @@ if args.mode == "train":
     with open(parameter_file, 'w') as file:
         save_params = dict()
         save_params['batch_size'] = args.batch_size
-        save_params['name'] =args.name
+        save_params['name'] = args.name
         save_params['num_epochs'] = args.num_epochs
         save_params['validation-frequency'] = args.validation_frequency
         save_params['num_filters'] = num_features
@@ -261,3 +270,7 @@ if args.sanity_check:
     x_reference = np.full((batch_size, 5023, 3), mesh_data.reference_mesh.v)
     x_result = coma_model.predict(x_reference, batch_size=batch_size)
     mesh_util.visualizeSideBySide(original=x_reference, prediction=x_result, number_of_meshes=1, mesh_data=mesh_data)
+
+if args.page_through:
+    date_print("Starting page-through!")
+    mesh_util.pageThroughMeshes(x_test, mesh_data=mesh_data)
