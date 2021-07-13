@@ -69,7 +69,7 @@ load_checkpoint = base_coma_model_dir + "/checkpoint/" + run_name
 
 save_checkpoint = load_checkpoint
 # used for local model:
-tensorboard_dir = base_coma_model_dir + "tensorboard/" + run_name + "/"
+tensorboard_dir = base_coma_model_dir + "/tensorboard/" + run_name + "/"
 
 # load reference mesh file
 date_print("Loading template mesh.")
@@ -193,6 +193,7 @@ if args.mode == "train":
         save_params['momentum'] = momentum
         save_params['regularization'] = regularization
         save_params['num-latent'] = num_latent
+        save_params['data-folder'] = base_data_folder
         date_print(str(save_params))
         json.dump(save_params, file)
     save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/coma_model",
