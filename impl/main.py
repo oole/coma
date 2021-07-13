@@ -193,6 +193,7 @@ if args.mode == "train":
         save_params['momentum'] = momentum
         save_params['regularization'] = regularization
         save_params['num-latent'] = num_latent
+        date_print(str(save_params))
         json.dump(save_params, file)
     save_callback = keras.callbacks.ModelCheckpoint(filepath=save_checkpoint + "/coma_model",
                                                     save_weights_only=True,
