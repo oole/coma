@@ -99,7 +99,7 @@ if not os.path.exists("computed/meshes-save.npy"):
     np.save("computed/downsampling_matrices-save.npy", downsampling_matrices)
     np.save("computed/upsampling_matrices-save.npy", upsampling_matrices)
 else:
-    meshes = np.load("meshes-save.npy", allow_pickle=True)
+    meshes = np.load("computed/meshes-save.npy", allow_pickle=True)
     adjecency_matrices = np.load("computed/adjecency_matrcies-save.npy", allow_pickle=True)
     downsampling_matrices = np.load("computed/downsampling_matrices-save.npy", allow_pickle=True)
     upsampling_matrices = np.load("computed/upsampling_matrices-save.npy", allow_pickle=True)
