@@ -165,7 +165,7 @@ regularization = 5e-4
 # model = models.coma(L=L, D=D, U=U, **parameters)
 coma_model = coma_ae(num_input_features=num_input_features,
                      num_features=num_features,
-                     laplacians=laplacians[:-1],
+                     laplacians=laplacians,
                      downsampling_transformations=downsampling_matrices,
                      upsampling_transformations=upsampling_matrices,
                      Ks=polynom_orders,

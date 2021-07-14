@@ -172,23 +172,22 @@ class decoder(keras.Model):
         self.reshape = keras.layers.Reshape((initial_size, initial_num_features))
         self.decoder_blocks = []
         for i in range(len(num_features)):
-            if i == (len(num_features) - 1):
-                # Last layer has given output feature size
-                self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
+            if i >= 1:
+                self.decoder_blocks.append(decoder_block(laplacian=laplacians[len(num_features) - i - 1],
                                                          K=Ks[-i - 1],
-                                                         input_features=num_features[-i - 1],
-                                                         output_features=num_output_features,
+                                                         input_features=num_features[-i],
+                                                         output_features=num_features[-i - 1],
                                                          upsampling_transformation=upsampling_transformations[-i - 1],
                                                          batch_size=batch_size))
             else:
-                self.decoder_blocks.append(decoder_block(laplacian=laplacians[-i - 1],
+                self.decoder_blocks.append(decoder_block(laplacian=laplacians[len(num_features)-i - 1],
                                                          K=Ks[-i - 1],
                                                          input_features=num_features[-i - 1],
-                                                         output_features=num_features[-i - 2],
+                                                         output_features=num_features[-i - 1],
                                                          upsampling_transformation=upsampling_transformations[-i - 1],
                                                          batch_size=batch_size))
         self.decoder_output = cheb_conv(
-            input_features=num_output_features,
+            input_features=num_features[0],
             output_features=num_output_features,
             K=Ks[0],
             laplacian=laplacians[0],
