@@ -23,7 +23,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 parser = argparse.ArgumentParser(description="Convolutional Mesh Autoencoder written for Tensorflow 2")
 parser.add_argument("--name", default="default-run-name",
                     help="The name of the run (used for checkpoints and tensorboard")
-parser.add_argument("--data-folder", default="data/sliced",
+parser.add_argument("--data-dir", default="/media/oole/Storage/Msc/processed-data/bareteeth",
                     help="Path to the data folder containing train.npy and test.npy")
 parser.add_argument("--automatic-run-name", type=bool, default=False,
                     help="Whether the run name should be automatically constructed (default is False)")
@@ -44,11 +44,13 @@ parser.add_argument("--visualize-during-training", type=bool, default=False,
                     help="Whether the meshes should be visualized in tensorboard during training")
 parser.add_argument("--page-through", type=bool, default=False,
                     help="Whether the test meshes should be opened in an interactive session")
+parser.add_argument("--result-dir", default="results", help="The results directory for the tests")
 
 args = parser.parse_args()
 
 # Set parsed arguments
 run_name = args.name
+date_print("STARTING IN MODE: " + args.mode)
 np.random.seed(args.random_seed)
 num_latent = args.latent_vector_length
 batch_size = args.batch_size
@@ -57,7 +59,7 @@ initial_epoch = args.initial_epoch
 validation_frequency = args.validation_frequency
 
 base_coma_model_dir = args.coma_model_dir
-base_data_folder = args.data_folder
+base_data_folder = args.data_dir
 
 template_mesh_path = args.template_mesh
 
@@ -177,6 +179,7 @@ coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Re
                        momentum=momentum), metrics=[keras.metrics.MeanAbsoluteError()])
 
 if os.path.exists(load_checkpoint) and len(os.listdir(load_checkpoint)) > 1:
+    date_print("Loading model checkpoint")
     coma_model.load_weights(load_checkpoint + "/coma_model")
 
 # mesh_util.pageThroughMeshes(mesh_data.vertices_train.astype('float32'), mesh_data)
@@ -241,25 +244,33 @@ if args.mode == "train":
                        validation_freq=validation_frequency,
                        validation_data=(x_val, x_val), callbacks=[save_callback, tensorboard_callback],
                        initial_epoch=initial_epoch)
+
 elif args.mode == "test":
-    result = coma_model.evaluate(x=x_test, y=x_test, batch_size=batch_size)
+    if not os.path.exists(args.result_dir):
+        os.makedirs(args.result_dir)
+
+    metric_result = coma_model.evaluate(x=x_test, y=x_test, batch_size=batch_size)
     metric_names = coma_model.metrics_names
-    print(metric_names[0] + ": " + str(result[0]) + " -- " + metric_names[1] + ": " + str(result[1]))
+
     result = coma_model.predict(x_test, batch_size=batch_size)
     print(result.shape)
-    mesh_util.visualizeSideBySide(original=x_test, prediction=result, number_of_meshes=10, mesh_data=mesh_data)
+    if x_test_cut > 0:
+        test_vertices = mesh_data.vertices_test[:-x_test_cut]
+    else:
+        test_vertices = mesh_data.vertices_test
 
-    tensorboard_mesh_indices = [0, 82, 94, 109, 159, 227, 342, 373, 454, 553, 591, 617, 747, 880, 980, 1008, 1079, 1223,
-                                1524, 1642, 1780, 1807, 1973, 2029, 2155, 2202, 2381, 2459, 2544, 2631, 2766, 2902,
-                                2975, 3060, 3153, 3285, 3354, 3535, 3771, 3848, 4033, 4196, 4339, 4514, 4664, 4790,
-                                4858, 5339, 5384, 5513, 5562, 5699, 5756, 5847, 6045, 6313, 6499, 6723, 6781, 7133,
-                                7201, 7353, 7509, 7671]
-    tensorboard_mesh_indices = tensorboard_mesh_indices[:batch_size]
-    tensorboard_meshes = np.array([x_train[i] for i in tensorboard_mesh_indices])
+    error = np.sqrt(np.sum((mesh_data.std * (result - test_vertices)) ** 2, axis=2))
+    error_std = np.std(error)
+    mean_error = np.mean(error)
+    median_error = np.median(error)
+    date_print("Run: " + run_name)
+    date_print(
+        "L1 model: " + metric_names[0] + ": " + str(metric_result[0]) + " -- " + metric_names[1] + ": " + str(metric_result[1]))
+    date_print("Standard deviation: " + str(error_std))
+    date_print("Mean error: " + str(mean_error))
+    date_print("Median error: " + str(median_error))
 
-    tensorboard_meshes = tensorboard_meshes[:batch_size]
-    tb_result = coma_model.predict(tensorboard_meshes, batch_size=batch_size)
-    mesh_util.visualizeSideBySide(original=x_test, prediction=tb_result, number_of_meshes=10, mesh_data=mesh_data)
+    np.save(args.result_dir + "/" + run_name + "_result", result)
 elif args.mode == "latent":
     latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
 elif args.mode == "sample":
