@@ -1,10 +1,7 @@
 calculate_error() {
 echo ---------- Calculating error for $1 ----------
-echo Running Coma for $1 on $2 data
-python main.py --coma-model-dir /abyss/home/tf-coma/coma-model --name $1 --data-dir /abyss/home/face-data/processed-data/$2 --mode test
-echo Predictions for $1 on $2 saved
 echo Calculating errors for CoMA and PCA
-python errors.py --prediction results/$1_result.npy --data-dir /abyss/home/face-data/processed-data/$2
+python errors.py --prediction results/$1_result.npy --data-dir /media/oole/Storage/Msc/processed-data/$2
 echo Finished
 echo ----------------------------------------------
 }
@@ -20,4 +17,4 @@ calculate_error lr8e3_mouth_extreme_bs16_210713_2001 mouth_extreme
 calculate_error lr8e3_mouth_middle_bs16_210713_2356 mouth_middle
 calculate_error lr8e3_mouth_open_bs16_210713_2356 mouth_open
 calculate_error lr8e3_mouth_side_bs16_210713_2356 mouth_side
-calculate_erro lr8e3_mouth_up_bs16_210713_2356 mouth_up
+calculate_error lr8e3_mouth_up_bs16_210713_2356 mouth_up

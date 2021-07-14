@@ -64,3 +64,26 @@ def play_with_latent_space(model: model.model.coma_ae, mesh_data, batch_size, me
         date_print(str(latent_representation[0]))
         decoded = model.decode(latent_representation).numpy()
         viewer[0][0].set_dynamic_meshes([mesh_data.vec2mesh(decoded[0])])
+
+
+def sample_latent_space(model: model.model.coma_ae, mesh_data, batch_size, mesh=None):
+    if mesh is not None:
+        esh = np.full((batch_size, 5023, 3), mesh.v)
+        # use specified mesh
+        print("TODO")
+    else:
+        #use template mesh
+        mesh = np.full((batch_size, 5023, 3), mesh_data.reference_mesh.v)
+
+    latent_representation = model.encode(mesh).numpy()[0]
+    samples = []
+    for i in range(len(latent_representation)):
+        component_samples = []
+        for j in range(-4,5,1):
+            new_rep =  (1 + 0.3 * j) * latent_representation[0]
+            component_samples.append(new_rep)
+        component_samples = np.array(component_samples)
+    samples = np.array(samples)
+    decoded = []
+    for i in range(len(samples)):
+        decoded.append(model.decode(samples[i]).numpy())

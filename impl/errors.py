@@ -22,6 +22,7 @@ mesh_data = meshdata.MeshData(number_val=100, train_file=args.data_dir + '/train
                               reference_mesh_file=args.template_mesh, fit_pca=True)
 
 # CoMA
+date_print("Predicting using CoMA")
 predicted_vertices = (predictions * mesh_data.std) + mesh_data.mean
 
 original_vertices = (mesh_data.vertices_test[:predictions.shape[0]] * mesh_data.std) + mesh_data.mean
@@ -38,6 +39,7 @@ model_error_median = np.median(model_error)
 date_print("CoMA Error - Mean: " + str(model_error_mean) + ", Std: " + str(model_error_std) + ", Median: " + str(
     model_error_median))
 # PCA
+date_print("Predicting using PCA")
 pca_prediction = mesh_data.pca.inverse_transform(mesh_data.pca.transform(
     np.reshape(mesh_data.vertices_test, (mesh_data.vertices_test.shape[0], mesh_data.n_vertex * 3))))
 
@@ -55,6 +57,7 @@ pca_error_median = np.median(pca_error)
 date_print("PCA Error - Mean: " + str(pca_error_mean) + ", Std: " + str(pca_error_std) + ", Median: " + str(
     pca_error_median))
 
+date_print("Storing errors.")
 if not os.path.exists(args.error_dir):
     os.makedirs(args.error_dir)
 # CoMA

@@ -265,7 +265,8 @@ elif args.mode == "test":
     median_error = np.median(error)
     date_print("Run: " + run_name)
     date_print(
-        "L1 model: " + metric_names[0] + ": " + str(metric_result[0]) + " -- " + metric_names[1] + ": " + str(metric_result[1]))
+        "L1 model: " + metric_names[0] + ": " + str(metric_result[0]) + " -- " + metric_names[1] + ": " + str(
+            metric_result[1]))
     date_print("Standard deviation: " + str(error_std))
     date_print("Mean error: " + str(mean_error))
     date_print("Median error: " + str(median_error))
@@ -292,7 +293,8 @@ elif args.mode == "test-val":
     median_error = np.median(error)
     date_print("Run: " + run_name)
     date_print(
-        "L1 model: " + metric_names[0] + ": " + str(metric_result[0]) + " -- " + metric_names[1] + ": " + str(metric_result[1]))
+        "L1 model: " + metric_names[0] + ": " + str(metric_result[0]) + " -- " + metric_names[1] + ": " + str(
+            metric_result[1]))
     date_print("Standard deviation: " + str(error_std))
     date_print("Mean error: " + str(mean_error))
     date_print("Median error: " + str(median_error))
