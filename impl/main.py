@@ -281,8 +281,8 @@ elif args.mode == "test-val":
 
     result = coma_model.predict(x_test, batch_size=batch_size)
     print(result.shape)
-    if x_test_cut > 0:
-        test_vertices = mesh_data.vertices_val[:-x_test_cut]
+    if x_val_cut > 0:
+        test_vertices = mesh_data.vertices_val[:-x_val_cut]
     else:
         test_vertices = mesh_data.vertices_val
 
