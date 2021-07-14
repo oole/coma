@@ -2,6 +2,8 @@ import argparse
 import numpy as np
 from data import meshdata
 from util.log_util import date_print
+import json
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--prediction", default="results/lr8e3_bareteeth_bs16_210713_1256_result.npy",
@@ -52,5 +54,31 @@ pca_error_median = np.median(pca_error)
 
 date_print("PCA Error - Mean: " + str(pca_error_mean) + ", Std: " + str(pca_error_std) + ", Median: " + str(
     pca_error_median))
+
+if not os.path.exists(args.error_dir):
+    os.makedirs(args.error_dir)
+# CoMA
+coma_error_file = args.error_dir + "/" + "coma_" + os.path.basename(args.data_dir)
+with open(coma_error_file + ".json", 'w') as file:
+    save_params = dict()
+    # save_params['coma_model_error'] = model_error
+    save_params['coma_model_error_mean'] = model_error_mean
+    save_params['coma_model_error_std'] = model_error_std
+    save_params['coma_model_error_median'] = model_error_median
+    date_print(str(save_params))
+    json.dump(save_params, file)
+np.save(coma_error_file + "_error.npy", model_error)
+# PCA
+pca_error_file = args.error_dir + "/" + "pca_" + os.path.basename(args.data_dir)
+with open(pca_error_file + ".json", 'w') as file:
+    save_params = dict()
+    # save_params['pca_model_error'] = pca_error
+    save_params['pca_model_error_mean'] = pca_error_mean
+    save_params['pca_model_error_std'] = pca_error_std
+    save_params['pca_model_error_median'] = pca_error_median
+    date_print(str(save_params))
+    json.dump(save_params, file)
+np.save(pca_error_file + "_error.npy", pca_error)
+
 
 
