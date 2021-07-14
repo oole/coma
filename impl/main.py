@@ -158,7 +158,7 @@ num_input_features = int(x_train.shape[-1])
 # Training parameters and regularization:
 decay_rate = 0.99  # done
 momentum = 0.9  # done
-decay_steps = num_train  # / batch_size  # done
+decay_steps = num_train / batch_size  # done
 regularization = 5e-4
 
 # Model configuration
