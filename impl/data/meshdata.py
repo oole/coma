@@ -4,9 +4,12 @@ import time
 import random
 from copy import deepcopy
 import glob
+from sklearn.decomposition import PCA
+
 
 class MeshData(object):
-    def __init__(self, number_val: int, train_file: str, test_file: str, reference_mesh_file: str):
+    def __init__(self, number_val: int, train_file: str, test_file: str, reference_mesh_file: str, num_pca_components=8,
+                 fit_pca=False):
         """
         Constructor; create a new Mesh Dataset, consisting of train, validation and test set.
 
@@ -28,7 +31,13 @@ class MeshData(object):
 
         self.load()
         self.reference_mesh = Mesh(filename=reference_mesh_file)
+
+        self.pca = PCA(n_components=num_pca_components)
+        self.fit_pca = fit_pca
+
         self.normalize()
+
+
 
     def load(self):
         """
@@ -39,7 +48,7 @@ class MeshData(object):
         self.mean = np.mean(vertices_train, axis=0)
         self.std = np.std(vertices_train, axis=0)
 
-        #split in to train val
+        # split in to train val
         self.vertices_train = vertices_train[:-self.number_val]
         self.vertices_val = vertices_train[-self.number_val:]
 
@@ -54,28 +63,33 @@ class MeshData(object):
         """
         # train
         self.vertices_train = self.vertices_train - self.mean
-        self.vertices_train = self.vertices_train/self.std
+        self.vertices_train = self.vertices_train / self.std
 
         self.vertices_val = self.vertices_val - self.mean
-        self.vertices_val = self.vertices_val/self.std
+        self.vertices_val = self.vertices_val / self.std
 
         self.vertices_test = self.vertices_test - self.mean
-        self.vertices_test = self.vertices_test/self.std
+        self.vertices_test = self.vertices_test / self.std
 
         self.N = self.vertices_train.shape[0]
+
+        if self.fit_pca:
+            self.pca.fit(np.reshape(self.vertices_train, (self.N, self.n_vertex*3)))
+
+
 
     def show(self, ids):
         """
         Shows the provided meshes, given the ids provided.
         """
-        if max(ids>= self.N):
+        if max(ids >= self.N):
             raise ValueError('id: out of bounds')
 
         mesh = Mesh(v=self.vertices_train[ids[0]], f=self.reference_mesh.f)
         time.sleep(0.5)
         viewer = mesh.show()
-        for i in range(len(ids)-1):
-            viewer.dynamic_meshes = [Mesh(v=self.vertices_train[ids[i+1]], f = self.reference_mesh.f)]
+        for i in range(len(ids) - 1):
+            viewer.dynamic_meshes = [Mesh(v=self.vertices_train[ids[i + 1]], f=self.reference_mesh.f)]
             time.sleep(0.5)
         return 0
 
@@ -83,10 +97,10 @@ class MeshData(object):
         """
         Randomly samples the training vertices given the batch size
         """
-        samples = np.zeros((BATCH_SIZE, self.vertices_train.shape[1]*self.vertices_train.shape[2]))
+        samples = np.zeros((BATCH_SIZE, self.vertices_train.shape[1] * self.vertices_train.shape[2]))
         for i in range(BATCH_SIZE):
-            randint = random.randint(0, self.N-1)
-            samples[i] = ((deepcopy(self.vertices_train[randint]) - self.mean)/self.std).reshape(-1)
+            randint = random.randint(0, self.N - 1)
+            samples[i] = ((deepcopy(self.vertices_train[randint]) - self.mean) / self.std).reshape(-1)
 
         return samples
 
@@ -97,7 +111,7 @@ class MeshData(object):
         Filepath pattern: filename + '-' + str(i).zfill(3) + 'ply'
         """
         for i in range(meshes.shape[0]):
-            vertices = meshes[i].reshape((self.n_vertex,3))*self.std + self.mean
+            vertices = meshes[i].reshape((self.n_vertex, 3)) * self.std + self.mean
             mesh = Mesh(v=vertices, f=self.reference_mesh.f)
             mesh.write_ply(filename + '-' + str(i).zfill(3) + '.ply')
         return 0
@@ -117,6 +131,7 @@ class MeshData(object):
     def vec2mesh(self, vec):
         vec = vec.reshape((self.n_vertex, 3)) * self.std + self.mean
         return Mesh(v=vec, f=self.reference_mesh.f)
+
 
 def meshPlay(folder, every=100, wait=0.05):
     """"
