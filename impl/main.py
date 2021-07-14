@@ -271,6 +271,35 @@ elif args.mode == "test":
     date_print("Median error: " + str(median_error))
 
     np.save(args.result_dir + "/" + run_name + "_result", result)
+
+elif args.mode == "test-val":
+    if not os.path.exists(args.result_dir):
+        os.makedirs(args.result_dir)
+
+    metric_result = coma_model.evaluate(x=x_val, y=x_val, batch_size=batch_size)
+    metric_names = coma_model.metrics_names
+
+    result = coma_model.predict(x_test, batch_size=batch_size)
+    print(result.shape)
+    if x_test_cut > 0:
+        test_vertices = mesh_data.vertices_val[:-x_test_cut]
+    else:
+        test_vertices = mesh_data.vertices_val
+
+    error = np.sqrt(np.sum((mesh_data.std * (result - test_vertices)) ** 2, axis=2))
+    error_std = np.std(error)
+    mean_error = np.mean(error)
+    median_error = np.median(error)
+    date_print("Run: " + run_name)
+    date_print(
+        "L1 model: " + metric_names[0] + ": " + str(metric_result[0]) + " -- " + metric_names[1] + ": " + str(metric_result[1]))
+    date_print("Standard deviation: " + str(error_std))
+    date_print("Mean error: " + str(mean_error))
+    date_print("Median error: " + str(median_error))
+
+    np.save(args.result_dir + "/" + run_name + "_result", result)
+
+
 elif args.mode == "latent":
     latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
 elif args.mode == "sample":
