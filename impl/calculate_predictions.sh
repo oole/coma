@@ -7,6 +7,7 @@ echo ----------------------------------------------
 }
 
 # Calculates the prediction using the specified model (-checkpoint) and the specified data
+# Extrapolation:
 calculate_predictions lr8e3_bareteeth_coma bareteeth
 calculate_predictions lr8e3_cheeks_in_coma cheeks_in
 calculate_predictions lr8e3_eyebrow_coma eyebrow
@@ -19,3 +20,6 @@ calculate_predictions lr8e3_mouth_middle_coma mouth_middle
 calculate_predictions lr8e3_mouth_open_coma mouth_open
 calculate_predictions lr8e3_mouth_side_coma mouth_side
 calculate_predictions lr8e3_mouth_up_coma mouth_up
+
+# Interpolation:
+calculate_predictions lr8e3_sliced_coma sliced

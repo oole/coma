@@ -9,7 +9,8 @@ echo ----------------------------------------------
 
 # Execute calculate_predictions.sh first.
 # (split into two scripts, so that predictions and errors can be performed in different environments)
-# Calculates the error for the given model predictions nd the specified data 
+# Calculates the error for the given model predictions nd the specified data
+# Extrapolation:
 calculate_error lr8e3_bareteeth_coma bareteeth
 calculate_error lr8e3_cheeks_in_coma cheeks_in
 calculate_error lr8e3_eyebrow_coma eyebrow
@@ -23,3 +24,5 @@ calculate_error lr8e3_mouth_open_coma mouth_open
 calculate_error lr8e3_mouth_side_coma mouth_side
 calculate_error lr8e3_mouth_up_coma mouth_up
 
+# Interpolation:
+calculate_error lr8e3_sliced_coma sliced
