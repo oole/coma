@@ -6,15 +6,20 @@ echo Finished
 echo ----------------------------------------------
 }
 
-calculate_error lr8e3_bareteeth_bs16_210713_1256 bareteeth
-calculate_error lr8e3_cheeks_in_bs16_210713_1256 cheeks_in
-calculate_error lr8e3_eyebrow_bs16_210713_1440 eyebrow
-calculate_error lr8e3_high_smile_bs16_210713_1455 high_smile
-calculate_error lr8e3_lips_back_bs16_210713_1710 lips_back
-calculate_error lr8e3_lips_up_bs16_210713_1712 lips_up
-calculate_error lr8e3_mouth_down_bs16_210713_1911 mouth_down
-calculate_error lr8e3_mouth_extreme_bs16_210713_2001 mouth_extreme
-calculate_error lr8e3_mouth_middle_bs16_210713_2356 mouth_middle
-calculate_error lr8e3_mouth_open_bs16_210713_2356 mouth_open
-calculate_error lr8e3_mouth_side_bs16_210713_2356 mouth_side
-calculate_error lr8e3_mouth_up_bs16_210713_2356 mouth_up
+
+# Execute calculate_predictions.sh first.
+# (split into two scripts, so that predictions and errors can be performed in different environments)
+# Calculates the error for the given model predictions nd the specified data 
+calculate_error lr8e3_bareteeth_coma bareteeth
+calculate_error lr8e3_cheeks_in_coma cheeks_in
+calculate_error lr8e3_eyebrow_coma eyebrow
+calculate_error lr8e3_high_smile_coma high_smile
+calculate_error lr8e3_lips_back_coma lips_back
+calculate_error lr8e3_lips_up_coma lips_up
+calculate_error lr8e3_mouth_down_coma mouth_down
+calculate_error lr8e3_mouth_extreme_coma mouth_extreme
+calculate_error lr8e3_mouth_middle_coma mouth_middle
+calculate_error lr8e3_mouth_open_coma mouth_open
+calculate_error lr8e3_mouth_side_coma mouth_side
+calculate_error lr8e3_mouth_up_coma mouth_up
+

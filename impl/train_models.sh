@@ -6,6 +6,8 @@ python main.py --coma-model-dir /abyss/home/tf-coma/coma-model --name $1 --data-
 echo ----------------------------------------------
 }
 
+# Trains the specified list of models, stores the checkpoints with the name in the specified coma-model-dir/checkpoint
+# While training the tensorboard summaries are posted to the specified coma-model-dir/tensorboard as well.
 train_model lr8e3_bareteeth_coma bareteeth
 train_model lr8e3_cheeks_in_coma cheeks_in
 train_model lr8e3_eyebrow_coma eyebrow
