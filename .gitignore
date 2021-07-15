@@ -3,6 +3,9 @@ impl/~/
 idea/
 .idea/
 
+# big numpy files
+*.npy
+
 # dotenv
 .env
 
