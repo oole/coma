@@ -305,7 +305,6 @@ elif args.mode == "latent":
 
 elif args.mode == "sample":
     latent_magic.sample_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
-    print("todo.")
 
 if args.sanity_check:
     x_reference = np.full((batch_size, 5023, 3), mesh_data.reference_mesh.v)
