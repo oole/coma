@@ -23,7 +23,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 parser = argparse.ArgumentParser(description="Convolutional Mesh Autoencoder written for Tensorflow 2")
 parser.add_argument("--name", default="default-run-name",
                     help="The name of the run (used for checkpoints and tensorboard")
-parser.add_argument("--data-dir", default="/media/oole/Storage/Msc/processed-data/bareteeth",
+parser.add_argument("--data-dir", default="/media/oole/Storage/Msc/processed-data/sliced",
                     help="Path to the data folder containing train.npy and test.npy")
 parser.add_argument("--automatic-run-name", type=bool, default=False,
                     help="Whether the run name should be automatically constructed (default is False)")
@@ -304,8 +304,9 @@ elif args.mode == "test-val":
 
 elif args.mode == "latent":
     latent_magic.play_with_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
+
 elif args.mode == "sample":
-    # Todo sample from latent space
+    latent_magic.sample_latent_space(model=coma_model, mesh_data=mesh_data, batch_size=batch_size)
     print("todo.")
 
 if args.sanity_check:

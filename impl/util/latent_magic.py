@@ -67,6 +67,7 @@ def play_with_latent_space(model: model.model.coma_ae, mesh_data, batch_size, me
 
 
 def sample_latent_space(model: model.model.coma_ae, mesh_data, batch_size, mesh=None):
+    date_print("SAMPLING LATENT SPACE")
     if mesh is not None:
         esh = np.full((batch_size, 5023, 3), mesh.v)
         # use specified mesh
@@ -79,11 +80,30 @@ def sample_latent_space(model: model.model.coma_ae, mesh_data, batch_size, mesh=
     samples = []
     for i in range(len(latent_representation)):
         component_samples = []
-        for j in range(-4,5,1):
-            new_rep =  (1 + 0.3 * j) * latent_representation[0]
+        for j in range(-2,3,1):
+            new_rep = latent_representation
+            new_rep[i] =  (1 + 0.3 * j) * latent_representation[i]
             component_samples.append(new_rep)
         component_samples = np.array(component_samples)
+        samples.append(component_samples)
     samples = np.array(samples)
     decoded = []
-    for i in range(len(samples)):
-        decoded.append(model.decode(samples[i]).numpy())
+    for lat in samples:
+        element = []
+        for rep in lat:
+            element.append(model.decode(np.full((batch_size, 8), rep)).numpy()[0])
+        decoded.append(np.array(element))
+    decoded = np.array(decoded)
+
+    # TODO iterate over size of latent space,
+    # then iterate over j and visualize the meshes paged.
+    viewer = MeshViewers(shape=(len(decoded), len(decoded[0])), titlebar="Sampling")
+    for i in range(len(decoded)):
+        latent_elem = decoded[i]
+        for j in range(len(latent_elem)):
+            mesh = mesh_data.vec2mesh(latent_elem[j])
+            viewer[i][j].set_dynamic_meshes([mesh])
+
+
+
+
