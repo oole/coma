@@ -21,27 +21,27 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 parser = argparse.ArgumentParser(description="Convolutional Mesh Autoencoder written for Tensorflow 2")
-parser.add_argument("--name", default="coma-test2",
-                    help="The name of the run (used for checkpoints and tensorboard", required=True)
-parser.add_argument("--data-dir", default="/media/oole/Storage/coma/processed-data/sliced",
+parser.add_argument("--name", default="coma-model-sliced",
+                    help="The name of the run (used for checkpoints and tensorboard)", required=True)
+parser.add_argument("--data-dir", default="data/sliced",
                     help="Path to the data folder containing train.npy and test.npy", required=True)
 parser.add_argument("--batch-size", type=int, default=16, help="The batch size to be used (default is 16)")
-parser.add_argument("--num-epochs", type=int, default=300, help="The number of training epochs (default is 300")
+parser.add_argument("--num-epochs", type=int, default=300, help="The number of training epochs (default is 300)")
 parser.add_argument("--initial-epoch", type=int, default=0,
                     help="The initial epoch, useful for continue training on an existing run (default 0)")
 parser.add_argument("--latent-vector-length", type=int, default=8, help="The size of the latent vector (default is 8)")
 parser.add_argument("--validation-frequency", type=int, default=10, help="The validation frequency (default is 10)")
-parser.add_argument("--learning-rate", type=float, default=8e-3, help="The learning rate (default is 8e-3")
+parser.add_argument("--learning-rate", type=float, default=8e-3, help="The learning rate (default is 8e-3)")
 parser.add_argument("--random-seed", type=int, default=2, help="The random seed (default is 8)")
 parser.add_argument("--template-mesh", default="data/template.obj", help="Path to the template mesh (default is data/template.obj)")
-parser.add_argument("--mode", default="train", help="The mode to run in train|test|latent (default is train)")
+parser.add_argument("--mode", default="sample", help="The mode to run in train|test|latent (default is train)")
 parser.add_argument("--sanity-check", type=bool, default=False, help="Whether or not sanity check should be performed (default is False)")
 parser.add_argument("--coma-model-dir", default="coma-model",
                     help="The directory holding checkpoints and tensorboard, such as coma-model/tensorboard or coma-model/checkpoint (default is coma-model)")
 parser.add_argument("--visualize-during-training", type=bool, default=False,
                     help="Whether the meshes should be visualized in tensorboard during training (default is False)")
 parser.add_argument("--page-through", type=bool, default=False,
-                    help="Whether the test meshes should be opened in an interactive session (default is False")
+                    help="Whether the test meshes should be opened in an interactive session (default is False)")
 parser.add_argument("--result-dir", default="results", help="The results directory for the tests (default is results)")
 
 args = parser.parse_args()

@@ -1,7 +1,7 @@
 calculate_predictions() {
 echo ---------- Calculating error for $1 ----------
 echo Running Coma for $1 on $2 data
-python main.py --coma-model-dir /abyss/home/tf-coma/coma-model --name $1 --data-dir /abyss/home/face-data/processed-data/$2 --mode test
+python main.py --coma-model-dir coma-model --name $1 --data-dir data/$2 --mode test
 echo Predictions for $1 on $2 saved
 echo ----------------------------------------------
 }
