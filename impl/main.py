@@ -5,10 +5,14 @@ import argparse
 
 from util import mesh_sampling, mesh_util, latent_magic
 from util.log_util import date_print
+
+import util.spiral_util as spiral_util
+
 from psbody.mesh import MeshViewers, Mesh
 from data import meshdata
 import util.graph_util as graph
 from model.model import coma_ae
+from model.model_spiral import coma_spiral_ae
 import model.model_util as model_util
 from tensorflow import keras
 import tensorflow as tf
@@ -43,6 +47,12 @@ parser.add_argument("--visualize-during-training", type=bool, default=False,
 parser.add_argument("--page-through", type=bool, default=False,
                     help="Whether the test meshes should be opened in an interactive session (default is False)")
 parser.add_argument("--result-dir", default="results", help="The results directory for the tests (default is results)")
+parser.add_argument("--convolution", default="cheb",
+                    help="The convolution operator that should be used. Either 'cheb' or 'spiral' (default is 'cheb')")
+parser.add_argument("--spiral-length", default=[9, 9, 9, 9, 9],
+                    help="The length of the spiral used for the spiral operator (default is [9, 9, 9, 9])")
+parser.add_argument("--spiral-dilation", default=[1, 1, 1, 1, 1],
+                    help="Dilation of the spiral operator (default is [1, 1, 1, 1]")
 
 args = parser.parse_args()
 
@@ -55,6 +65,8 @@ batch_size = args.batch_size
 num_epochs = args.num_epochs
 initial_epoch = args.initial_epoch
 validation_frequency = args.validation_frequency
+spiral_length = args.spiral_length
+spiral_dilation = args.spiral_dilation
 
 base_coma_model_dir = args.coma_model_dir
 base_data_folder = args.data_dir
@@ -92,7 +104,7 @@ date_print("Precomputing adjecency/downsampling/upsampling matrices and graph la
            "matrices based on templat mesh")
 
 if not os.path.exists("computed/meshes-save.npy"):
-    meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices = mesh_sampling.generate_transformation_matrices(
+    meshes, adjecency_matrices, downsampling_matrices, upsampling_matrices, sampling_faces, sampling_vertices = mesh_sampling.generate_transformation_matrices(
         template_mesh, downsampling_factors)
     if not os.path.exists("computed"):
         os.makedirs("computed")
@@ -100,11 +112,15 @@ if not os.path.exists("computed/meshes-save.npy"):
     np.save("computed/adjecency_matrcies-save.npy", adjecency_matrices)
     np.save("computed/downsampling_matrices-save.npy", downsampling_matrices)
     np.save("computed/upsampling_matrices-save.npy", upsampling_matrices)
+    np.save("computed/sampling_faces.npy", sampling_faces)
+    np.save("computed/sampling_vertices.npy", sampling_vertices)
 else:
     meshes = np.load("computed/meshes-save.npy", allow_pickle=True)
     adjecency_matrices = np.load("computed/adjecency_matrcies-save.npy", allow_pickle=True)
     downsampling_matrices = np.load("computed/downsampling_matrices-save.npy", allow_pickle=True)
     upsampling_matrices = np.load("computed/upsampling_matrices-save.npy", allow_pickle=True)
+    sampling_faces = np.load("computed/sampling_faces.npy", allow_pickle=True)
+    sampling_vertices = np.load("computed/sampling_vertices.npy", allow_pickle=True)
 
 adjecency_matrices = [x.astype('float32') for x in adjecency_matrices]  # convertType(adjecency_matrices)
 downsampling_matrices = [x.astype('float32') for x in downsampling_matrices]
@@ -116,12 +132,23 @@ p = [x.shape[0] for x in adjecency_matrices]
 # U: 5023x1256, 1256x314, 314x79, 79x20
 # p: 5023, 1256, 314, 79, 20
 
-# L Computed graph laplacians, computed for adjencency matrices a in A
+use_spiral_operator = args.convolution == "spiral"
+
 L_1 = graph.laplacian(list(adjecency_matrices)[0])
 laplacians = [graph.laplacian(matrix) for matrix in adjecency_matrices]
-# L same dimensions as adjecency_matrices
-# ----- Read dataset
 
+if use_spiral_operator:
+    # Prepare spirals`
+    spirals = spiral_util.process_spiral(sampling_faces, sampling_vertices, spiral_length, spiral_dilation)
+    # spirals
+    # 1256, 314, 79
+else:
+    # L Computed graph laplacians, computed for adjencency matrices a in A
+    L_1 = graph.laplacian(list(adjecency_matrices)[0])
+    laplacians = [graph.laplacian(matrix) for matrix in adjecency_matrices]
+    # L same dimensions as adjecency_matrices
+
+# ----- Read dataset
 mesh_data = meshdata.MeshData(number_val=100, train_file=base_data_folder + '/train.npy',
                               test_file=base_data_folder + '/test.npy',
                               reference_mesh_file=template_mesh_path)
@@ -161,14 +188,23 @@ regularization = 5e-4
 
 # Model configuration
 # model = models.coma(L=L, D=D, U=U, **parameters)
-coma_model = coma_ae(num_input_features=num_input_features,
-                     num_features=num_features,
-                     laplacians=laplacians,
-                     downsampling_transformations=downsampling_matrices,
-                     upsampling_transformations=upsampling_matrices,
-                     Ks=polynom_orders,
-                     num_latent=num_latent, batch_size=batch_size,
-                     regularization=regularization)
+if use_spiral_operator:
+    coma_model = coma_spiral_ae(num_input_features=num_input_features,
+                                num_features=num_features,
+                                spirals=spirals,
+                                downsampling_transformations=downsampling_matrices,
+                                upsampling_transformations=upsampling_matrices,
+                                num_latent=num_latent, batch_size=batch_size,
+                                regularization=regularization)
+else:
+    coma_model = coma_ae(num_input_features=num_input_features,
+                         num_features=num_features,
+                         laplacians=laplacians,
+                         downsampling_transformations=downsampling_matrices,
+                         upsampling_transformations=upsampling_matrices,
+                         Ks=polynom_orders,
+                         num_latent=num_latent, batch_size=batch_size,
+                         regularization=regularization)
 
 coma_model.compile(loss=keras.losses.MeanAbsoluteError(reduction=keras.losses.Reduction.SUM_OVER_BATCH_SIZE),
                    optimizer=keras.optimizers.SGD(

@@ -305,11 +305,13 @@ def generate_transformation_matrices(mesh: Mesh, factors):
 
     factors = map(lambda x: 1.0 / x, factors)
 
-    M, A, D, U = [], [], [], []
+    M, A, D, U, F, V = [], [], [], [], [], []
 
     # Set initial adjecency matrix and mesh
     A.append(get_vert_connectivity(mesh_v=mesh.v, mesh_f=mesh.f))
     M.append(mesh)
+    F.append(mesh.f)
+    V.append(mesh.v)
 
     for factor in factors:
         # get faces and the transformation
@@ -318,9 +320,11 @@ def generate_transformation_matrices(mesh: Mesh, factors):
         # apply transformation to get vertices for next downsampling step
         new_mesh_v = ds_D.dot(M[-1].v)
         new_mesh = Mesh(v=new_mesh_v, f=ds_f)
+        F.append(new_mesh.f)
+        V.append(new_mesh.v)
         M.append(new_mesh)
         A.append(get_vert_connectivity(new_mesh.v, new_mesh.f))
         # get upsampling transformation by vertex projection
         U.append(setup_deformation_transfer(M[-1], M[-2]))
 
-    return M, A, D, U
+    return M, A, D, U, F, V
