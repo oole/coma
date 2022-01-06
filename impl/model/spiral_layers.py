@@ -45,30 +45,9 @@ class spiral_conv(layers.Layer):
                                      trainable=True)
 
     def call(self, input_tensor):
-        #
-        input_shape = tf.shape(input_tensor)
-        print("spiral-conv - input shape: " + str(input_shape))
-        print("input tensor:")
-        print("dim 0: " + str(input_tensor[0]))
-        print("dim 1: " + str(input_tensor[1]))
-        print("dim 2: " + str(input_tensor[2]))
-        print("Spirals shape: " + str(self.spirals.shape))
-        print("spiral indices: " + str(self.spiral_indices))
-        print("Input shape [0]: " + str(input_shape[0]))
-        print("INPUT SHAPE 0: 2")
         x = tf.gather(input_tensor, self.spiral_indices, axis=1)
-        print("x after gather: " + str(tf.shape(x)))
-        print("x[0] after gather: " + str(x[0]))
         x = tf.reshape(x, [self.batch_size, self.num_nodes, -1])
-        print("x shape: after reshape: " + str(tf.shape(x)))
-        print("x after reshape:" + str(x))
-        print("x[0] after reshape: " + str(x[0]))
-        print("num_nodes: " + str(self.num_nodes))
-
-        print("Vertex spirals reshaped to matrix for convolution.")
-        print("Weights: " + str(self.w))
         x = tf.matmul(x, self.w)
-        print("x after matmul: " + str(x))
         return tf.reshape(x, [self.batch_size, tf.shape(input_tensor)[1], self.output_features])
 
 
