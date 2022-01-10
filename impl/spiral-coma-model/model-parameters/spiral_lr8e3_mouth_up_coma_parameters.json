@@ -1,0 +1,1 @@
+{"batch_size": 16, "name": "spiral_lr8e3_mouth_up_coma", "num_epochs": 300, "validation-frequency": 10, "num_filters": [16, 16, 16, 32], "polynom-orders": [6, 6, 6, 6], "random-seed": 2, "learning-rate": 0.008, "decay-steps": 1138.25, "decay-rate": 0.99, "momentum": 0.9, "regularization": 0.0005, "num-latent": 8, "data-folder": "/abyss/home/face-data/processed-data/mouth_up"}
