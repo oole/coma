@@ -1,7 +1,7 @@
 calculate_error() {
 echo ---------- Calculating error for $1 ----------
 echo Calculating errors for CoMA and PCA
-python errors.py --prediction results/$1_result.npy --data-dir data/$2 --convolution spiral
+python errors.py --prediction results/$1_result.npy --data-dir data/$2
 echo Finished
 echo ----------------------------------------------
 }
